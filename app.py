@@ -725,6 +725,7 @@ def render_page(result=None):
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
     <style>
         body {{
@@ -1329,6 +1330,139 @@ def render_page(result=None):
                 flex: none;
             }}
         }}
+
+        @media (max-width: 700px) {{
+            header {{
+                padding: 32px 20px 36px;
+            }}
+
+            .header-inner {{
+                max-width: 100%;
+            }}
+
+            .logo-line {{
+                font-size: 12px;
+                padding: 6px 11px;
+            }}
+
+            .main-title {{
+                font-size: 38px;
+                letter-spacing: -1px;
+            }}
+
+            .sub-title-en {{
+                font-size: 22px;
+            }}
+
+            .desc-box {{
+                margin-top: 20px;
+                padding: 16px 18px;
+            }}
+
+            main {{
+                margin: 18px auto;
+                padding: 0 12px;
+            }}
+
+            .project-summary-box,
+            .criteria-box,
+            .search-box,
+            .summary,
+            .results,
+            .roadmap-box,
+            .price-history-box {{
+                padding: 18px;
+                border-radius: 14px;
+            }}
+
+            .stats-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }}
+
+            .stat-card {{
+                padding: 14px;
+            }}
+
+            .stat-number {{
+                font-size: 24px;
+            }}
+
+            .decision-summary {{
+                gap: 8px;
+            }}
+
+            .decision-chip {{
+                font-size: 12px;
+                padding: 8px 10px;
+            }}
+
+            .form-grid,
+            .compact-form-grid {{
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }}
+
+            .compact-form-grid div:first-child {{
+                grid-column: auto;
+            }}
+
+            input {{
+                font-size: 16px;
+                padding: 12px;
+            }}
+
+            button {{
+                width: 100%;
+                padding: 13px 18px;
+            }}
+
+            .price-card-list {{
+                grid-template-columns: 1fr;
+            }}
+
+            .price-card {{
+                padding: 16px;
+            }}
+
+            .price-info-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
+
+            .info-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
+
+            .condition-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
+
+            .card {{
+                padding: 18px;
+            }}
+
+            .card h3,
+            .price-card h3 {{
+                font-size: 17px;
+                line-height: 1.45;
+            }}
+
+            .summary-sentence,
+            .reason,
+            .price-comment {{
+                font-size: 14px;
+            }}
+
+            .roadmap-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .future-message {{
+                border-radius: 14px;
+                line-height: 1.5;
+            }}
+        }}
+
     </style>
 </head>
 
@@ -1380,6 +1514,11 @@ def index():
 
     page = render_page(result)
     return Response(page, mimetype="text/html; charset=utf-8")
+
+
+@app.route("/healthz")
+def healthz():
+    return "ok", 200
 
 
 if __name__ == "__main__":

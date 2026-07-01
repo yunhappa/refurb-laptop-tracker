@@ -521,7 +521,30 @@ def render_criteria_section():
 
 def render_roadmap_section():
     return """
-    <section class="roadmap-box">
+    
+    <section class="notice-box">
+        <h2>서비스 이용 안내</h2>
+        <p>
+            리퍼 트래커는 네이버 쇼핑 API로 수집한 공개 상품 데이터를 바탕으로
+            가격과 사양을 비교해 구매 판단을 돕는 정보 제공 서비스입니다.
+        </p>
+        <div class="notice-grid">
+            <div>
+                <h3>데이터 기준</h3>
+                <p>현재 표시되는 가격, 평균가, 최저가는 수집 시점의 데이터 기준입니다. 실제 판매 페이지의 가격과 조건은 달라질 수 있습니다.</p>
+            </div>
+            <div>
+                <h3>구매 판단 기준</h3>
+                <p>구매 적기 점수는 평균 대비 할인율, 최근 최저가 여부, 관측 수, 판매처 수 등을 종합해 계산한 참고 지표입니다.</p>
+            </div>
+            <div>
+                <h3>최종 확인 필요</h3>
+                <p>실제 구매 전에는 판매처, 제품 상태, 보증 여부, 배송비, 반품 조건을 반드시 직접 확인해야 합니다.</p>
+            </div>
+        </div>
+    </section>
+
+<section class="roadmap-box">
         <div class="future-title-row">
             <h2>앞으로 계속 더 좋아집니다! 🚀</h2>
             <p>
@@ -1461,6 +1484,65 @@ def render_page(result=None):
                 border-radius: 14px;
                 line-height: 1.5;
             }}
+
+            .notice-box {{
+                padding: 18px;
+                border-radius: 14px;
+            }}
+
+            .notice-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .notice-box h2 {{
+                font-size: 24px;
+            }}
+
+        }}
+
+
+        .notice-box {{
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            margin-bottom: 28px;
+        }}
+
+        .notice-box h2 {{
+            font-size: 26px;
+            margin-bottom: 12px;
+        }}
+
+        .notice-box > p {{
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }}
+
+        .notice-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }}
+
+        .notice-grid div {{
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 18px;
+        }}
+
+        .notice-grid h3 {{
+            color: #2563eb;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }}
+
+        .notice-grid p {{
+            color: #475569;
+            line-height: 1.7;
+            font-size: 14px;
         }}
 
     </style>

@@ -309,8 +309,25 @@ def make_summary_sentence(product):
     )
 
 
+
+def get_latest_update_info():
+    stats = get_project_stats()
+    latest = stats.get("last_collected", "") or "-"
+    if latest == "-":
+        data_basis = "데이터 없음"
+    else:
+        data_basis = f"{latest} 기준"
+
+    return {
+        "latest_update": latest,
+        "auto_update": "매일 오전 9시 17분쯤 자동 갱신",
+        "data_basis": data_basis
+    }
+
+
 def render_project_summary_section():
     stats = get_project_stats()
+    latest_info = get_latest_update_info()
 
     return f"""
     <section class="project-summary-box">
@@ -353,6 +370,22 @@ def render_project_summary_section():
         <p class="collection-period">
             수집 기간: {esc(stats["first_collected"])} ~ {esc(stats["last_collected"])}
         </p>
+
+        <div class="update-status-box">
+            <div class="update-status-item">
+                <div class="update-status-label">최근 데이터 갱신</div>
+                <div class="update-status-value">{esc(latest_info["latest_update"])}</div>
+            </div>
+            <div class="update-status-item">
+                <div class="update-status-label">자동 갱신 주기</div>
+                <div class="update-status-value">{esc(latest_info["auto_update"])}</div>
+            </div>
+            <div class="update-status-item">
+                <div class="update-status-label">현재 데이터 기준</div>
+                <div class="update-status-value">{esc(latest_info["data_basis"])}</div>
+            </div>
+        </div>
+
     </section>
     """
 
@@ -1485,6 +1518,16 @@ def render_page(result=None):
                 line-height: 1.5;
             }}
 
+
+            .update-status-box {{
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }}
+
+            .update-status-item {{
+                padding: 12px;
+            }}
+
             .notice-box {{
                 padding: 18px;
                 border-radius: 14px;
@@ -1543,6 +1586,39 @@ def render_page(result=None):
             color: #475569;
             line-height: 1.7;
             font-size: 14px;
+        }}
+
+
+        .update-status-box {{
+            background: linear-gradient(135deg, #eff6ff, #f8fafc);
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }}
+
+        .update-status-item {{
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+        }}
+
+        .update-status-label {{
+            font-size: 13px;
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 6px;
+        }}
+
+        .update-status-value {{
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: keep-all;
         }}
 
     </style>

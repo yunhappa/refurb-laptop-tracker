@@ -325,6 +325,72 @@ def get_latest_update_info():
     }
 
 
+
+def get_confidence_label(product):
+    mall_count = safe_int(product.get("mall_count", 0))
+    seller_count = safe_int(product.get("seller_count", 0))
+    observed_count = safe_int(product.get("observed_count", 0))
+
+    comparison_count = max(mall_count, seller_count)
+
+    if comparison_count >= 4 or observed_count >= 120:
+        return "높음", "동일·유사 모델의 비교 데이터가 비교적 충분합니다."
+    if comparison_count >= 2 or observed_count >= 50:
+        return "보통", "비교 가능한 판매처나 관측 데이터가 일부 확보되었습니다."
+    return "낮음", "비교 데이터가 적어 실제 상품 페이지 확인이 특히 중요합니다."
+
+
+def make_recommendation_points(product):
+    decision = product.get("buy_decision", "")
+    value_score = safe_float(product.get("value_score", 0))
+    mall_count = safe_int(product.get("mall_count", 0))
+    seller_count = safe_int(product.get("seller_count", 0))
+    price_gap = safe_int(product.get("price_gap_in_group", 0))
+    ram = product.get("ram", "")
+    ssd = product.get("ssd", "")
+    cpu = product.get("cpu", "")
+
+    points = []
+
+    if ram or ssd or cpu:
+        spec_parts = []
+        if ram:
+            spec_parts.append(f"RAM {ram}")
+        if ssd:
+            spec_parts.append(f"SSD {ssd}")
+        if cpu:
+            spec_parts.append(f"CPU {cpu}")
+        points.append(" / ".join(spec_parts) + " 조건을 기준으로 비교했습니다.")
+
+    if value_score >= 280:
+        points.append("가성비 점수가 높은 편이라 우선 검토할 만합니다.")
+    elif value_score >= 240:
+        points.append("가성비 점수가 기준선에 가까워 구매 고려 대상으로 볼 수 있습니다.")
+    else:
+        points.append("가성비 점수가 상대적으로 낮아 신중한 확인이 필요합니다.")
+
+    comparison_count = max(mall_count, seller_count)
+    if comparison_count >= 2:
+        points.append(f"동일·유사 모델 {comparison_count}개 기준으로 가격 비교가 가능합니다.")
+    else:
+        points.append("동일 모델 비교 데이터가 적어 판매 페이지 확인이 필요합니다.")
+
+    if price_gap >= 100000:
+        points.append(f"판매처별 가격 차이가 {price_gap:,}원으로 커서 최저가 확인 가치가 큽니다.")
+    elif price_gap > 0:
+        points.append(f"판매처별 가격 차이는 {price_gap:,}원입니다.")
+
+    if decision == "구매 추천":
+        points.append("현재 기준에서는 가격과 사양 조건이 좋아 구매 추천으로 분류했습니다.")
+    elif decision == "구매 고려":
+        points.append("현재 기준에서는 바로 구매보다는 조건 확인 후 구매 고려가 적합합니다.")
+    elif decision == "데이터 부족":
+        points.append("점수는 나쁘지 않지만 비교 데이터가 부족해 추가 확인이 필요합니다.")
+    else:
+        points.append("현재 기준에서는 가격 또는 비교 데이터 측면에서 보류가 적합합니다.")
+
+    return points[:5]
+
 def render_project_summary_section():
     stats = get_project_stats()
     latest_info = get_latest_update_info()
@@ -493,60 +559,57 @@ def render_price_history_section():
 def render_criteria_section():
     return """
     <section class="criteria-box">
-        <h2>가성비 판단 기준</h2>
+        <h2>판단 기준을 쉽게 이해하기</h2>
         <p class="criteria-intro">
-            본 서비스는 단순히 상품을 검색하는 것이 아니라,
-            RAM·SSD·CPU를 점수화하고 가격과 비교하여 가성비 점수를 계산합니다.
-            또한 동일 모델의 판매처 수와 가격 차이를 함께 고려하여 구매 판단을 제공합니다.
+            리퍼 트래커는 단순히 최저가만 보여주지 않습니다.
+            가격이 정말 괜찮은지, 비교 데이터가 충분한지, 실사용 사양을 만족하는지를 함께 봅니다.
         </p>
 
-        <div class="criteria-grid">
+        <div class="criteria-grid service-criteria-grid">
             <div class="criteria-card">
-                <h3>1. 사양 점수</h3>
-                <p>노트북의 기본 성능을 RAM, SSD, CPU 기준으로 점수화합니다.</p>
-                <div class="formula">사양 점수 = RAM×3 + SSD(GB)×0.05 + CPU 점수</div>
-                <div class="score-table">
-                    CPU 점수 예시<br>
-                    i3: 30점 / i5: 50점 / i7: 70점 / i9: 90점<br>
-                    Ryzen 5: 50점 / Ryzen 7: 70점<br>
-                    Apple M1: 60점 / M2: 70점 / M3: 80점 / M4: 90점
+                <h3>가격 매력도</h3>
+                <p>현재가가 평균가보다 얼마나 낮은지, 관측 최저가에 가까운지 확인합니다.</p>
+                <div class="factor-row">
+                    <span>평균가 대비 할인</span>
+                    <span>최근 최저가 여부</span>
+                    <span>가격 차이</span>
                 </div>
             </div>
 
             <div class="criteria-card">
-                <h3>2. 가성비 점수</h3>
-                <p>
-                    사양 점수를 가격으로 나누어 가격 대비 성능을 계산합니다.
-                    같은 사양이라면 가격이 낮을수록 가성비 점수가 높아집니다.
-                </p>
-                <div class="formula">가성비 점수 = 사양 점수 ÷ 가격(백만 원 단위)</div>
-                <div class="score-table">
-                    예시<br>
-                    사양 점수 150점, 가격 500,000원인 경우<br>
-                    150 ÷ 0.5 = 300점
+                <h3>사양 적합도</h3>
+                <p>RAM, SSD, CPU 정보를 추출해 실사용에 적합한 기본 사양인지 판단합니다.</p>
+                <div class="factor-row">
+                    <span>RAM</span>
+                    <span>SSD</span>
+                    <span>CPU</span>
                 </div>
             </div>
 
             <div class="criteria-card">
-                <h3>3. 구매 판단</h3>
-                <p>가성비 점수와 동일 모델 판매처 수를 함께 고려합니다.</p>
-                <ul>
-                    <li>280점 이상 + 판매처 2곳 이상: 구매 추천</li>
-                    <li>240점 이상 + 판매처 2곳 이상: 구매 고려</li>
-                    <li>240점 이상 + 판매처 1곳: 데이터 부족</li>
-                    <li>그 외: 보류</li>
-                </ul>
-                <div class="score-table">
-                    판매처별 가격 차이가 10만 원 이상이면<br>
-                    최저가 판매처 확인 문구를 추가합니다.
+                <h3>비교 신뢰도</h3>
+                <p>동일·유사 모델의 판매처 수와 관측 수가 충분할수록 판단 신뢰도가 높아집니다.</p>
+                <div class="factor-row">
+                    <span>관측 수</span>
+                    <span>판매처 수</span>
+                    <span>동일 모델 후보</span>
                 </div>
             </div>
         </div>
 
+        <div class="simple-rule-box">
+            <h3>결론은 네 단계로 보여줍니다</h3>
+            <div class="simple-rule-grid">
+                <div><b>구매 추천</b><br>가격·사양·비교 데이터가 모두 좋은 편</div>
+                <div><b>구매 고려</b><br>조건은 괜찮지만 최종 확인 필요</div>
+                <div><b>데이터 부족</b><br>점수는 좋지만 비교 데이터가 적음</div>
+                <div><b>보류</b><br>현재 기준에서는 매력도가 낮음</div>
+            </div>
+        </div>
+
         <p class="criteria-note">
-            ※ 현재 버전은 CSV 기반의 규칙 기반 프로토타입입니다.
-            데이터가 장기간 누적되면 가격 이력, 평균가, 최저가, 가격 하락률을 반영하여
-            더 정교한 구매 적기 판단 모델로 확장할 수 있습니다.
+            ※ 리퍼·중고 상품은 상태, 보증, 배송비, 반품 조건에 따라 실제 가치가 달라질 수 있습니다.
+            본 서비스의 판단은 구매 결정을 돕는 참고 정보이며, 최종 구매 전 상품 페이지 확인이 필요합니다.
         </p>
     </section>
     """
@@ -619,10 +682,72 @@ def render_roadmap_section():
     </section>
     """
 
+
+def render_user_guide_section():
+    return """
+    <section class="guide-box">
+        <div class="guide-header">
+            <div>
+                <h2>이렇게 사용해 보세요</h2>
+                <p>
+                    원하는 브랜드나 모델명, RAM, SSD, 예산을 입력하면
+                    현재 수집 데이터 기준으로 구매 후보를 비교해 줍니다.
+                </p>
+            </div>
+            <div class="guide-badge">처음 방문자를 위한 빠른 안내</div>
+        </div>
+
+        <div class="guide-grid">
+            <div class="guide-card">
+                <div class="guide-step">1</div>
+                <h3>모델 또는 브랜드 입력</h3>
+                <p>삼성, LG그램, ThinkPad, 맥북처럼 관심 있는 키워드를 입력합니다.</p>
+            </div>
+            <div class="guide-card">
+                <div class="guide-step">2</div>
+                <h3>필수 사양 입력</h3>
+                <p>실사용 기준으로 RAM 16GB, SSD 512GB 이상을 먼저 추천합니다.</p>
+            </div>
+            <div class="guide-card">
+                <div class="guide-step">3</div>
+                <h3>가격과 비교 데이터 확인</h3>
+                <p>현재가, 평균가, 최저가, 판매처 수를 함께 보고 판단합니다.</p>
+            </div>
+            <div class="guide-card">
+                <div class="guide-step">4</div>
+                <h3>상품 페이지 최종 확인</h3>
+                <p>구매 전 제품 상태, 보증, 배송비, 반품 조건을 반드시 확인합니다.</p>
+            </div>
+        </div>
+    </section>
+    """
+
 def render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_value):
+    examples = [
+        ("삼성 16GB 512GB", "/?keyword=삼성&ram=16GB&ssd=512GB"),
+        ("LG그램 16GB 512GB", "/?keyword=LG그램&ram=16GB&ssd=512GB"),
+        ("ThinkPad 16GB 512GB", "/?keyword=ThinkPad&ram=16GB&ssd=512GB"),
+        ("맥북 16GB 512GB", "/?keyword=맥북&ram=16GB&ssd=512GB"),
+    ]
+
+    example_links = "".join(
+        f'<a class="example-chip" href="{url}">{esc(label)}</a>'
+        for label, url in examples
+    )
+
     return f"""
     <section class="search-box">
-        <h2>검색 조건 입력</h2>
+        <div class="search-title-row">
+            <div>
+                <h2>검색 조건 입력</h2>
+                <p>브랜드·모델명과 실사용 사양을 입력해 현재 구매 후보를 비교해 보세요.</p>
+            </div>
+        </div>
+
+        <div class="example-searches">
+            <span>빠른 검색 예시</span>
+            {example_links}
+        </div>
 
         <form method="GET" action="/">
             <div class="form-grid compact-form-grid">
@@ -663,6 +788,7 @@ def render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_
     <section class="dashboard-layout">
         <div class="dashboard-left">
             {render_project_summary_section()}
+            {render_user_guide_section()}
             {render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_value)}
             {render_criteria_section()}
         </div>
@@ -676,7 +802,12 @@ def render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_
 
 def render_product_cards(products):
     if not products:
-        return "<p class='empty'>조건에 맞는 상품이 없습니다.</p>"
+        return """
+        <div class='empty'>
+            <b>조건에 맞는 상품이 없습니다.</b><br>
+            키워드를 조금 넓게 입력하거나, CPU/가격 조건을 비워서 다시 검색해 보세요.
+        </div>
+        """
 
     cards = ""
 
@@ -700,15 +831,33 @@ def render_product_cards(products):
 
         decision_class = get_decision_class(product.get("buy_decision", ""))
         summary_sentence = esc(make_summary_sentence(product))
+        confidence_label, confidence_desc = get_confidence_label(product)
+        confidence_class = "confidence-high" if confidence_label == "높음" else "confidence-mid" if confidence_label == "보통" else "confidence-low"
+
+        points = make_recommendation_points(product)
+        points_html = "".join(f"<li>{esc(point)}</li>" for point in points)
 
         cards += f"""
         <div class="card">
-            <div class="rank">{index}위</div>
-            <div class="decision {decision_class}">{decision}</div>
+            <div class="card-topline">
+                <div class="rank">{index}위</div>
+                <div class="decision {decision_class}">{decision}</div>
+            </div>
 
             <h3>{title}</h3>
 
             <p class="summary-sentence">{summary_sentence}</p>
+
+            <div class="confidence-box {confidence_class}">
+                <b>판단 신뢰도: {confidence_label}</b>
+                <span>{esc(confidence_desc)}</span>
+            </div>
+
+            <div class="recommendation-points">
+                <h4>추천 판단 근거</h4>
+                <ul>{points_html}</ul>
+            </div>
+
             <p class="reason">{reason}</p>
 
             <div class="info-grid">
@@ -1518,6 +1667,34 @@ def render_page(result=None):
                 line-height: 1.5;
             }}
 
+            .guide-header {{
+                flex-direction: column;
+            }}
+
+            .guide-badge {{
+                white-space: normal;
+            }}
+
+            .guide-grid,
+            .simple-rule-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .example-searches {{
+                align-items: flex-start;
+            }}
+
+            .example-chip {{
+                width: 100%;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+
+            .confidence-box {{
+                font-size: 14px;
+            }}
+
+
 
             .update-status-box {{
                 grid-template-columns: 1fr;
@@ -1619,6 +1796,229 @@ def render_page(result=None):
             font-size: 14px;
             line-height: 1.5;
             word-break: keep-all;
+        }}
+
+
+        .guide-box {{
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 18px;
+            border: 1px solid #e5e7eb;
+        }}
+
+        .guide-header {{
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }}
+
+        .guide-header h2 {{
+            margin: 0 0 8px;
+        }}
+
+        .guide-header p {{
+            margin: 0;
+            color: #4b5563;
+            line-height: 1.6;
+        }}
+
+        .guide-badge {{
+            white-space: nowrap;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-weight: 800;
+            font-size: 13px;
+        }}
+
+        .guide-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }}
+
+        .guide-card {{
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+        }}
+
+        .guide-step {{
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            background: #2563eb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }}
+
+        .guide-card h3 {{
+            color: #1e3a8a;
+            margin: 0 0 8px;
+            font-size: 16px;
+        }}
+
+        .guide-card p {{
+            color: #4b5563;
+            line-height: 1.55;
+            font-size: 14px;
+            margin: 0;
+        }}
+
+        .search-title-row p {{
+            color: #4b5563;
+            margin-top: 6px;
+            line-height: 1.5;
+        }}
+
+        .example-searches {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0 16px;
+        }}
+
+        .example-searches span {{
+            color: #475569;
+            font-size: 14px;
+            font-weight: 800;
+            margin-right: 4px;
+        }}
+
+        .example-chip {{
+            display: inline-block;
+            text-decoration: none;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 800;
+        }}
+
+        .example-chip:hover {{
+            background: #dbeafe;
+        }}
+
+        .factor-row {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }}
+
+        .factor-row span {{
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 7px 9px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+        }}
+
+        .simple-rule-box {{
+            margin-top: 16px;
+            padding: 18px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+        }}
+
+        .simple-rule-box h3 {{
+            margin-top: 0;
+            color: #111827;
+        }}
+
+        .simple-rule-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }}
+
+        .simple-rule-grid div {{
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            color: #4b5563;
+            line-height: 1.5;
+            font-size: 14px;
+        }}
+
+        .simple-rule-grid b {{
+            color: #1d4ed8;
+        }}
+
+        .card-topline {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }}
+
+        .confidence-box {{
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            line-height: 1.5;
+        }}
+
+        .confidence-box span {{
+            color: #475569;
+            font-size: 14px;
+        }}
+
+        .confidence-high {{
+            background: #ecfdf5;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }}
+
+        .confidence-mid {{
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }}
+
+        .confidence-low {{
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }}
+
+        .recommendation-points {{
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 12px 0;
+        }}
+
+        .recommendation-points h4 {{
+            margin: 0 0 8px;
+            color: #111827;
+        }}
+
+        .recommendation-points ul {{
+            margin: 0;
+            padding-left: 18px;
+            color: #374151;
+            line-height: 1.65;
         }}
 
     </style>

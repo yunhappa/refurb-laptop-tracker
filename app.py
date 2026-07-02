@@ -1,10 +1,84 @@
 import csv
 import html
 from collections import Counter
+from urllib.parse import urlencode
 import os
 from flask import Flask, request, Response
 
 INPUT_FILENAME = "buy_timing_result.csv"
+
+
+PURPOSE_PRESETS = {
+    "student": {
+        "label": "대학생용",
+        "keyword": "",
+        "ram": "16GB",
+        "ssd": "512GB",
+        "cpu": "",
+        "max_price": "700000",
+        "sort": "recommend",
+        "desc": "과제, 문서작업, 온라인 강의용으로 무난한 조건"
+    },
+    "office": {
+        "label": "사무용",
+        "keyword": "ThinkPad",
+        "ram": "16GB",
+        "ssd": "512GB",
+        "cpu": "",
+        "max_price": "700000",
+        "sort": "recommend",
+        "desc": "문서작업과 업무용으로 안정적인 비즈니스 노트북 중심"
+    },
+    "portable": {
+        "label": "휴대용",
+        "keyword": "LG그램",
+        "ram": "16GB",
+        "ssd": "512GB",
+        "cpu": "",
+        "max_price": "",
+        "sort": "price_asc",
+        "desc": "가벼운 휴대성을 우선해 LG그램 계열 중심"
+    },
+    "developer": {
+        "label": "개발용",
+        "keyword": "",
+        "ram": "32GB",
+        "ssd": "1TB",
+        "cpu": "",
+        "max_price": "1000000",
+        "sort": "value_desc",
+        "desc": "멀티태스킹과 개발 환경을 고려한 32GB RAM / 1TB SSD 조건"
+    },
+    "power": {
+        "label": "고성능",
+        "keyword": "",
+        "ram": "32GB",
+        "ssd": "1TB",
+        "cpu": "i7",
+        "max_price": "",
+        "sort": "value_desc",
+        "desc": "고성능 CPU와 넉넉한 메모리·저장공간 중심"
+    },
+    "budget": {
+        "label": "가성비",
+        "keyword": "",
+        "ram": "16GB",
+        "ssd": "512GB",
+        "cpu": "",
+        "max_price": "500000",
+        "sort": "value_desc",
+        "desc": "50만원 이하에서 실사용 가능한 가성비 후보 중심"
+    },
+}
+
+SORT_OPTIONS = {
+    "recommend": "추천순",
+    "price_asc": "낮은 가격순",
+    "value_desc": "가성비 점수순",
+    "seller_desc": "판매처 많은 순",
+    "gap_desc": "가격 차이 큰 순",
+}
+
 
 
 def esc(value):
@@ -133,6 +207,136 @@ def decision_priority(decision):
     return 0
 
 
+
+def normalize_sort_key(sort_key):
+    if sort_key in SORT_OPTIONS:
+        return sort_key
+    return "recommend"
+
+
+def get_sort_label(sort_key):
+    return SORT_OPTIONS.get(normalize_sort_key(sort_key), "추천순")
+
+
+def get_purpose_label(purpose):
+    if purpose in PURPOSE_PRESETS:
+        return PURPOSE_PRESETS[purpose]["label"]
+    return "직접 검색"
+
+
+def apply_purpose_defaults(purpose, keyword, ram, ssd, cpu, max_price, sort_key):
+    preset = PURPOSE_PRESETS.get(purpose)
+
+    if not preset:
+        return keyword, ram, ssd, cpu, max_price, normalize_sort_key(sort_key)
+
+    if not keyword:
+        keyword = preset.get("keyword", "")
+    if not ram:
+        ram = preset.get("ram", "")
+    if not ssd:
+        ssd = preset.get("ssd", "")
+    if not cpu:
+        cpu = preset.get("cpu", "")
+    if not max_price:
+        max_price = preset.get("max_price", "")
+    if not sort_key or sort_key == "recommend":
+        sort_key = preset.get("sort", "recommend")
+
+    return keyword, ram, ssd, cpu, max_price, normalize_sort_key(sort_key)
+
+
+def sort_products(products, sort_key):
+    sort_key = normalize_sort_key(sort_key)
+
+    if sort_key == "price_asc":
+        return sorted(
+            products,
+            key=lambda row: (
+                safe_int(row.get("price", 0)) if safe_int(row.get("price", 0)) > 0 else 10**12,
+                -safe_float(row.get("value_score", 0)),
+            )
+        )
+
+    if sort_key == "value_desc":
+        return sorted(
+            products,
+            key=lambda row: (
+                safe_float(row.get("value_score", 0)),
+                decision_priority(row.get("buy_decision", "")),
+                max(safe_int(row.get("mall_count", 0)), safe_int(row.get("seller_count", 0))),
+            ),
+            reverse=True
+        )
+
+    if sort_key == "seller_desc":
+        return sorted(
+            products,
+            key=lambda row: (
+                max(safe_int(row.get("mall_count", 0)), safe_int(row.get("seller_count", 0))),
+                safe_float(row.get("value_score", 0)),
+                decision_priority(row.get("buy_decision", "")),
+            ),
+            reverse=True
+        )
+
+    if sort_key == "gap_desc":
+        return sorted(
+            products,
+            key=lambda row: (
+                safe_int(row.get("price_gap_in_group", 0)),
+                safe_float(row.get("value_score", 0)),
+            ),
+            reverse=True
+        )
+
+    return sorted(products, key=product_sort_key, reverse=True)
+
+
+def build_result_url(result, sort_key):
+    params = {}
+
+    purpose = result.get("purpose", "")
+    if purpose:
+        params["purpose"] = purpose
+
+    for key in ["keyword", "ram", "ssd", "cpu"]:
+        value = result.get(key, "")
+        if value:
+            params[key] = value
+
+    max_price = result.get("max_price")
+    if max_price is not None:
+        params["max_price"] = str(max_price)
+
+    params["sort"] = normalize_sort_key(sort_key)
+
+    return "/?" + urlencode(params) + "#results"
+
+
+def render_sort_controls(result):
+    current_sort = normalize_sort_key(result.get("sort", "recommend"))
+    links = []
+
+    for sort_key, label in SORT_OPTIONS.items():
+        active_class = "active" if sort_key == current_sort else ""
+        url = build_result_url(result, sort_key)
+        links.append(f'<a class="{active_class}" href="{esc(url)}">{esc(label)}</a>')
+
+    return f"""
+    <div class="result-toolbar">
+        <div>
+            <b>결과 정렬</b>
+            <span>상황에 따라 추천순, 낮은 가격순, 판매처 많은 순으로 바꿔 볼 수 있습니다.</span>
+        </div>
+        <div class="sort-links">
+            {''.join(links)}
+        </div>
+    </div>
+    """
+
+
+
 def product_sort_key(product):
     return (
         decision_priority(product.get("buy_decision", "")),
@@ -204,7 +408,7 @@ def is_match(row, keyword, ram_filter, ssd_filter, cpu_filter, max_price):
     return True
 
 
-def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_input):
+def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_input, sort_input='recommend', purpose_input=''):
     keyword = normalize_text(keyword_input)
     ram_filter = normalize_ram(ram_input)
     ssd_filter = normalize_ssd(ssd_input)
@@ -256,6 +460,9 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
                     search_type = "검색 결과 없음"
                     products = []
 
+    sort_key = normalize_sort_key(sort_input)
+    products = sort_products(products, sort_key)
+
     return {
         "search_type": search_type,
         "products": products,
@@ -264,6 +471,8 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
         "ssd": ssd_filter,
         "cpu": cpu_filter,
         "max_price": max_price,
+        "sort": sort_key,
+        "purpose": purpose_input,
     }
 
 
@@ -546,6 +755,33 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
                 단순 최저가 검색이 아니라, 평균가·최저가·관측 수·판매처 수·사양 점수를 함께 비교해
                 현재 구매 타이밍이 괜찮은 후보를 먼저 보여줍니다.
             </p>
+
+            <div class="purpose-panel">
+                <div class="purpose-panel-title">
+                    <b>목적별 추천 모드</b>
+                    <span>사용 목적을 고르면 조건이 자동으로 적용됩니다.</span>
+                </div>
+                <div class="purpose-grid">
+                    <a class="purpose-card" href="/?purpose=student&ram=16GB&ssd=512GB&max_price=700000&sort=recommend#results">
+                        <b>대학생용</b><span>강의·과제·문서작업</span>
+                    </a>
+                    <a class="purpose-card" href="/?purpose=office&keyword=ThinkPad&ram=16GB&ssd=512GB&max_price=700000&sort=recommend#results">
+                        <b>사무용</b><span>업무용 ThinkPad 중심</span>
+                    </a>
+                    <a class="purpose-card" href="/?purpose=portable&keyword=LG그램&ram=16GB&ssd=512GB&sort=price_asc#results">
+                        <b>휴대용</b><span>가벼운 LG그램 중심</span>
+                    </a>
+                    <a class="purpose-card" href="/?purpose=developer&ram=32GB&ssd=1TB&max_price=1000000&sort=value_desc#results">
+                        <b>개발용</b><span>32GB / 1TB 우선</span>
+                    </a>
+                    <a class="purpose-card" href="/?purpose=power&ram=32GB&ssd=1TB&cpu=i7&sort=value_desc#results">
+                        <b>고성능</b><span>i7급 고사양 후보</span>
+                    </a>
+                    <a class="purpose-card" href="/?purpose=budget&ram=16GB&ssd=512GB&max_price=500000&sort=value_desc#results">
+                        <b>가성비</b><span>50만원 이하 실사용</span>
+                    </a>
+                </div>
+            </div>
 
             <form class="hero-search-form" method="GET" action="/#results">
                 <div class="hero-form-main">
@@ -1164,6 +1400,8 @@ def render_page(result=None):
 
         products = result.get("products", [])
         search_type = esc(result.get("search_type", ""))
+        purpose_display = esc(get_purpose_label(result.get("purpose", "")))
+        sort_display = esc(get_sort_label(result.get("sort", "recommend")))
 
         result_html = f"""
         <section class="summary">
@@ -1174,12 +1412,15 @@ def render_page(result=None):
                 <div><b>SSD</b><br>{ssd_value if ssd_value else "전체"}</div>
                 <div><b>CPU</b><br>{cpu_value if cpu_value else "전체"}</div>
                 <div><b>최대 가격</b><br>{max_price_display}</div>
+                <div><b>추천 모드</b><br>{purpose_display}</div>
+                <div><b>정렬</b><br>{sort_display}</div>
             </div>
         </section>
 
         <section id="results" class="results">
             <h2>{search_type}</h2>
             <p class="count">상품 수: {len(products)}개</p>
+            {render_sort_controls(result)}
             {render_product_cards(products)}
         </section>
         """
@@ -1964,6 +2205,25 @@ def render_page(result=None):
                 flex-direction: column;
             }}
 
+            .purpose-panel-title,
+            .result-toolbar {{
+                flex-direction: column;
+            }}
+
+            .purpose-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .sort-links {{
+                justify-content: flex-start;
+                width: 100%;
+            }}
+
+            .sort-links a {{
+                flex: 1 1 auto;
+                text-align: center;
+            }}
+
             .quick-filter-panel {{
                 width: 100%;
                 justify-content: flex-start;
@@ -2663,16 +2923,152 @@ def render_page(result=None):
             transform: translateY(-1px);
         }}
 
+
+        .purpose-panel {{
+            background: #ffffff;
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 16px;
+            margin: 18px 0;
+        }}
+
+        .purpose-panel-title {{
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }}
+
+        .purpose-panel-title b {{
+            color: #1e3a8a;
+            font-size: 16px;
+        }}
+
+        .purpose-panel-title span {{
+            color: #64748b;
+            font-size: 13px;
+        }}
+
+        .purpose-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }}
+
+        .purpose-card {{
+            text-decoration: none;
+            display: block;
+            border: 1px solid #dbeafe;
+            background: #f8fbff;
+            border-radius: 14px;
+            padding: 14px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }}
+
+        .purpose-card:hover {{
+            transform: translateY(-2px);
+            border-color: #93c5fd;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.10);
+        }}
+
+        .purpose-card b {{
+            display: block;
+            color: #1d4ed8;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }}
+
+        .purpose-card span {{
+            color: #475569;
+            font-size: 12px;
+            line-height: 1.4;
+        }}
+
+        .result-toolbar {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            margin: 14px 0 18px;
+        }}
+
+        .result-toolbar b {{
+            color: #111827;
+            display: block;
+            margin-bottom: 4px;
+        }}
+
+        .result-toolbar span {{
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }}
+
+        .sort-links {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }}
+
+        .sort-links a {{
+            text-decoration: none;
+            border: 1px solid #bfdbfe;
+            background: #ffffff;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 8px 11px;
+            font-weight: 900;
+            font-size: 13px;
+        }}
+
+        .sort-links a.active {{
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+        }}
+
+
+        .brand-home-link {{
+            display: inline-block;
+            text-decoration: none;
+            color: inherit;
+            border-radius: 18px;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }}
+
+        .brand-home-link:hover {{
+            transform: translateY(-2px);
+            opacity: 0.96;
+        }}
+
+        .brand-home-link:focus-visible {{
+            outline: 3px solid rgba(147, 197, 253, 0.95);
+            outline-offset: 8px;
+        }}
+
+        .brand-home-link .main-title,
+        .brand-home-link .sub-title-en {{
+            color: inherit;
+        }}
+
     </style>
 </head>
 
 <body>
     <header>
         <div class="header-inner">
-            <div class="logo-line">DATA-DRIVEN PRICE TRACKING</div>
+            <a class="brand-home-link" href="/" aria-label="리퍼 트래커 홈으로 이동">
+                <div class="logo-line">DATA-DRIVEN PRICE TRACKING</div>
 
-            <h1 class="main-title">리퍼 트래커</h1>
-            <div class="sub-title-en">Refurb Laptop Tracker</div>
+                <h1 class="main-title">리퍼 트래커</h1>
+                <div class="sub-title-en">Refurb Laptop Tracker</div>
+            </a>
 
             <div class="desc-box">
                 <div class="desc-ko-title">리퍼/중고 노트북 구매 판단 검색기</div>
@@ -2704,11 +3100,17 @@ def index():
     ssd = request.args.get("ssd", "")
     cpu = request.args.get("cpu", "")
     max_price = request.args.get("max_price", "")
+    purpose = request.args.get("purpose", "")
+    sort_key = request.args.get("sort", "recommend")
 
-    has_query = any([keyword, ram, ssd, cpu, max_price])
+    keyword, ram, ssd, cpu, max_price, sort_key = apply_purpose_defaults(
+        purpose, keyword, ram, ssd, cpu, max_price, sort_key
+    )
+
+    has_query = any([keyword, ram, ssd, cpu, max_price, purpose])
 
     if has_query:
-        result = search_products(keyword, ram, ssd, cpu, max_price)
+        result = search_products(keyword, ram, ssd, cpu, max_price, sort_key, purpose)
     else:
         result = None
 

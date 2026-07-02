@@ -391,6 +391,266 @@ def make_recommendation_points(product):
 
     return points[:5]
 
+
+def get_top_recommendation_products(limit=3):
+    products = read_products()
+    products.sort(key=product_sort_key, reverse=True)
+    return products[:limit]
+
+
+def get_product_identity(product):
+    return (
+        product.get("model_key")
+        or product.get("product_id")
+        or product.get("title")
+        or product.get("link")
+        or ""
+    )
+
+
+def get_budget_pick(min_price, max_price, used_keys=None):
+    used_keys = used_keys or set()
+
+    products = []
+    for row in read_products():
+        price = safe_int(row.get("price", 0))
+        identity = get_product_identity(row)
+
+        if price <= 0:
+            continue
+        if identity in used_keys:
+            continue
+        if min_price is not None and price < min_price:
+            continue
+        if max_price is not None and price > max_price:
+            continue
+
+        products.append(row)
+
+    products.sort(key=product_sort_key, reverse=True)
+    return products[0] if products else None
+
+
+def get_market_signal():
+    stats = get_project_stats()
+    top_products = get_top_recommendation_products(3)
+    price_rows = read_csv_rows("price_history_summary.csv")
+
+    best_price_row = None
+    if price_rows:
+        price_rows.sort(key=lambda row: safe_float(row.get("buy_timing_score", 0)), reverse=True)
+        best_price_row = price_rows[0]
+
+    if top_products:
+        best_product = top_products[0]
+        best_title = fix_product_name(best_product.get("title", ""))
+        best_price = safe_int(best_product.get("price", 0))
+        best_score = safe_float(best_product.get("value_score", 0))
+        best_decision = best_product.get("buy_decision", "")
+        best_link = best_product.get("link", "")
+    else:
+        best_title = "추천 후보 없음"
+        best_price = 0
+        best_score = 0
+        best_decision = "-"
+        best_link = ""
+
+    if best_price_row:
+        timing_title = fix_product_name(best_price_row.get("title", ""))
+        timing_price = safe_int(best_price_row.get("latest_price", 0))
+        timing_score = safe_float(best_price_row.get("buy_timing_score", 0))
+        timing_discount = best_price_row.get("change_rate", "")
+        timing_link = best_price_row.get("link", "") or best_price_row.get("product_link", "")
+    else:
+        timing_title = "가격 이력 후보 없음"
+        timing_price = 0
+        timing_score = 0
+        timing_discount = "-"
+        timing_link = ""
+
+    return {
+        "stats": stats,
+        "best_title": best_title,
+        "best_price": best_price,
+        "best_score": best_score,
+        "best_decision": best_decision,
+        "best_link": best_link,
+        "timing_title": timing_title,
+        "timing_price": timing_price,
+        "timing_score": timing_score,
+        "timing_discount": timing_discount,
+        "timing_link": timing_link,
+        "top_products": top_products,
+    }
+
+
+def render_signal_link(url):
+    if not url:
+        return ""
+    return f'<a class="signal-link-button" href="{esc(url)}" target="_blank">상품 페이지 열기</a>'
+
+
+def render_compact_product_pick(product, label):
+    if not product:
+        return f"""
+        <div class="mini-pick-card">
+            <div class="mini-pick-label">{esc(label)}</div>
+            <h3>이 예산 구간의 후보가 아직 부족합니다</h3>
+            <p>데이터가 더 쌓이면 예산별 추천 정확도가 높아집니다.</p>
+        </div>
+        """
+
+    title = esc(fix_product_name(product.get("title", "")))
+    price = safe_int(product.get("price", 0))
+    decision = esc(product.get("buy_decision", ""))
+    score = esc(product.get("value_score", ""))
+    link = esc(product.get("link", ""))
+
+    return f"""
+    <div class="mini-pick-card">
+        <div class="mini-pick-label">{esc(label)}</div>
+        <h3>{title}</h3>
+        <p><b>{price:,}원</b> · {decision} · 가성비 {score}점</p>
+        <a href="{link}" target="_blank">상품 보기</a>
+    </div>
+    """
+
+
+def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_value, price_value):
+    signal = get_market_signal()
+    latest_info = get_latest_update_info()
+
+    best_title = esc(signal["best_title"])
+    timing_title = esc(signal["timing_title"])
+
+    used_budget_keys = set()
+
+    budget_50 = get_budget_pick(None, 500000, used_budget_keys)
+    if budget_50:
+        used_budget_keys.add(get_product_identity(budget_50))
+
+    budget_70 = get_budget_pick(500001, 700000, used_budget_keys)
+    if budget_70:
+        used_budget_keys.add(get_product_identity(budget_70))
+
+    budget_100 = get_budget_pick(700001, 1000000, used_budget_keys)
+    if budget_100:
+        used_budget_keys.add(get_product_identity(budget_100))
+
+    return f"""
+    <section class="service-landing">
+        <div class="landing-left">
+            <div class="landing-kicker">SMART REFURB BUYING ASSISTANT</div>
+            <h2>지금 살 만한 리퍼 노트북을<br>데이터로 바로 좁혀드립니다</h2>
+            <p>
+                단순 최저가 검색이 아니라, 평균가·최저가·관측 수·판매처 수·사양 점수를 함께 비교해
+                현재 구매 타이밍이 괜찮은 후보를 먼저 보여줍니다.
+            </p>
+
+            <form class="hero-search-form" method="GET" action="/#results">
+                <div class="hero-form-main">
+                    <input type="text" name="keyword" value="{keyword_value}" placeholder="브랜드/모델명: 삼성, LG그램, ThinkPad, 맥북">
+                    <input type="text" name="ram" value="{ram_value}" placeholder="RAM 예: 16GB">
+                    <input type="text" name="ssd" value="{ssd_value}" placeholder="SSD 예: 512GB">
+                    <input type="text" name="cpu" value="{cpu_value}" placeholder="CPU 예: i5, i7">
+                    <input type="text" name="max_price" value="{price_value}" placeholder="최대 가격 예: 700000">
+                </div>
+                <button type="submit">내 조건으로 추천 보기</button>
+            </form>
+
+            <div class="hero-quick-chips">
+                <a href="/?keyword=삼성&ram=16GB&ssd=512GB#results">삼성 16GB/512GB</a>
+                <a href="/?keyword=ThinkPad#results">ThinkPad 전체</a>
+                <a href="/?keyword=LG그램#results">LG그램 전체</a>
+                <a href="/?keyword=맥북#results">맥북 전체</a>
+                <a href="/?max_price=700000#results">70만원 이하 전체</a>
+            </div>
+        </div>
+
+        <div class="landing-right">
+            <div class="signal-card primary-signal">
+                <div class="signal-label">오늘의 가장 강한 구매 후보</div>
+                <h3>{best_title}</h3>
+                <div class="signal-metrics">
+                    <span>{signal["best_price"]:,}원</span>
+                    <span>{esc(signal["best_decision"])}</span>
+                    <span>가성비 {signal["best_score"]:.1f}점</span>
+                </div>
+                {render_signal_link(signal.get("best_link", ""))}
+            </div>
+
+            <div class="signal-card">
+                <div class="signal-label">가격 이력상 눈에 띄는 후보</div>
+                <h3>{timing_title}</h3>
+                <div class="signal-metrics">
+                    <span>{signal["timing_price"]:,}원</span>
+                    <span>구매 적기 {signal["timing_score"]:.1f}점</span>
+                    <span>평균 대비 {esc(signal["timing_discount"])}%</span>
+                </div>
+                {render_signal_link(signal.get("timing_link", ""))}
+            </div>
+
+            <div class="signal-mini-grid">
+                <div>
+                    <b>{signal["stats"]["candidate_count"]:,}</b>
+                    <span>실사용 후보</span>
+                </div>
+                <div>
+                    <b>{signal["stats"]["model_group_count"]:,}</b>
+                    <span>모델/사양 그룹</span>
+                </div>
+                <div>
+                    <b>{esc(latest_info["latest_update"])}</b>
+                    <span>최근 데이터 갱신</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="recommendation-lab">
+        <div class="section-heading-row">
+            <div>
+                <h2>예산별 바로 볼 만한 후보</h2>
+                <p>예산 구간별 대표 후보를 보여주고, 오른쪽 빠른 탐색 옵션을 누르면 바로 아래 검색 결과에서 해당 조건의 후보를 확인할 수 있습니다.</p>
+            </div>
+            <div class="quick-filter-panel">
+                <a href="/?ram=16GB&ssd=512GB#results">16GB / 512GB 전체</a>
+                <a href="/?ram=32GB&ssd=1TB#results">32GB / 1TB 고사양</a>
+                <a href="/?max_price=700000#results">70만원 이하 전체</a>
+                <a href="/?keyword=삼성#results">삼성 전체</a>
+                <a href="/?keyword=LG그램#results">LG그램 전체</a>
+                <a href="/?keyword=ThinkPad#results">ThinkPad 전체</a>
+                <a href="/?keyword=맥북#results">맥북 전체</a>
+            </div>
+        </div>
+        <div class="mini-pick-grid">
+            {render_compact_product_pick(budget_50, "50만원 이하")}
+            {render_compact_product_pick(budget_70, "50~70만원")}
+            {render_compact_product_pick(budget_100, "70~100만원")}
+        </div>
+    </section>
+    """
+
+
+def render_purchase_checklist_section():
+    return """
+    <section class="purchase-checklist">
+        <div>
+            <h2>구매 전 마지막 체크리스트</h2>
+            <p>리퍼·중고 노트북은 가격만큼 상태 확인이 중요합니다. 상품 페이지에서 아래 항목을 꼭 확인하세요.</p>
+        </div>
+        <div class="checklist-grid">
+            <div>보증 기간</div>
+            <div>배터리 상태</div>
+            <div>외관 등급</div>
+            <div>윈도우 포함 여부</div>
+            <div>배송비</div>
+            <div>반품 가능 여부</div>
+        </div>
+    </section>
+    """
+
+
 def render_project_summary_section():
     stats = get_project_stats()
     latest_info = get_latest_update_info()
@@ -749,7 +1009,7 @@ def render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_
             {example_links}
         </div>
 
-        <form method="GET" action="/">
+        <form method="GET" action="/#results">
             <div class="form-grid compact-form-grid">
                 <div>
                     <label>키워드</label>
@@ -788,8 +1048,6 @@ def render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_
     <section class="dashboard-layout">
         <div class="dashboard-left">
             {render_project_summary_section()}
-            {render_user_guide_section()}
-            {render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_value)}
             {render_criteria_section()}
         </div>
 
@@ -797,6 +1055,7 @@ def render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_
             {render_price_history_section()}
         </aside>
     </section>
+    {render_purchase_checklist_section()}
     """
 
 
@@ -918,7 +1177,7 @@ def render_page(result=None):
             </div>
         </section>
 
-        <section class="results">
+        <section id="results" class="results">
             <h2>{search_type}</h2>
             <p class="count">상품 수: {len(products)}개</p>
             {render_product_cards(products)}
@@ -1667,6 +1926,57 @@ def render_page(result=None):
                 line-height: 1.5;
             }}
 
+            .service-landing,
+            .purchase-checklist {{
+                grid-template-columns: 1fr;
+            }}
+
+            .landing-left,
+            .landing-right,
+            .recommendation-lab,
+            .purchase-checklist {{
+                padding: 18px;
+                border-radius: 16px;
+            }}
+
+            .landing-left h2 {{
+                font-size: 28px;
+            }}
+
+            .hero-form-main {{
+                grid-template-columns: 1fr;
+            }}
+
+            .hero-quick-chips a,
+            .soft-link-button {{
+                width: 100%;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+
+            .signal-mini-grid,
+            .mini-pick-grid,
+            .checklist-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .section-heading-row {{
+                flex-direction: column;
+            }}
+
+            .quick-filter-panel {{
+                width: 100%;
+                justify-content: flex-start;
+                max-width: none;
+            }}
+
+            .quick-filter-panel a {{
+                width: 100%;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+
+
             .guide-header {{
                 flex-direction: column;
             }}
@@ -2021,6 +2331,338 @@ def render_page(result=None):
             line-height: 1.65;
         }}
 
+
+        .service-landing {{
+            display: grid;
+            grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);
+            gap: 24px;
+            margin-bottom: 24px;
+            align-items: stretch;
+        }}
+
+        .landing-left,
+        .landing-right,
+        .recommendation-lab,
+        .purchase-checklist {{
+            background: #ffffff;
+            border-radius: 22px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e5e7eb;
+        }}
+
+        .landing-left {{
+            background:
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 34%),
+                linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }}
+
+        .landing-kicker {{
+            display: inline-flex;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: .4px;
+            margin-bottom: 14px;
+        }}
+
+        .landing-left h2 {{
+            font-size: 34px;
+            line-height: 1.24;
+            letter-spacing: -1.1px;
+            margin: 0 0 14px;
+        }}
+
+        .landing-left p {{
+            color: #475569;
+            line-height: 1.7;
+            margin-bottom: 18px;
+        }}
+
+        .hero-search-form {{
+            background: #0f172a;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.20);
+        }}
+
+        .hero-form-main {{
+            display: grid;
+            grid-template-columns: 1.5fr 0.7fr 0.7fr 0.75fr 0.9fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }}
+
+        .hero-form-main input {{
+            border: 1px solid rgba(255,255,255,0.13);
+            background: rgba(255,255,255,0.96);
+            border-radius: 12px;
+            padding: 13px 12px;
+            font-size: 14px;
+        }}
+
+        .hero-search-form button {{
+            width: 100%;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+        }}
+
+        .hero-quick-chips {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }}
+
+        .hero-quick-chips a {{
+            text-decoration: none;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            padding: 9px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+        }}
+
+        .landing-right {{
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background:
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 34%),
+                linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+            color: #0f172a;
+            border: 1px solid #dbeafe;
+        }}
+
+        .signal-card {{
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+        }}
+
+        .primary-signal {{
+            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+            border-color: #bfdbfe;
+        }}
+
+        .signal-label {{
+            font-size: 13px;
+            color: #2563eb;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }}
+
+        .signal-card h3 {{
+            margin: 0 0 12px;
+            line-height: 1.42;
+            font-size: 17px;
+            color: #111827;
+        }}
+
+        .signal-metrics {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }}
+
+        .signal-metrics span {{
+            background: #e0ecff;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 900;
+        }}
+
+        .signal-link-button {{
+            display: inline-block;
+            text-decoration: none;
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 900;
+        }}
+
+        .signal-mini-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.4fr;
+            gap: 10px;
+        }}
+
+        .signal-mini-grid div {{
+            background: rgba(255,255,255,0.78);
+            border: 1px solid #dbeafe;
+            border-radius: 14px;
+            padding: 14px;
+        }}
+
+        .signal-mini-grid b {{
+            display: block;
+            font-size: 20px;
+            margin-bottom: 4px;
+            color: #1d4ed8;
+        }}
+
+        .signal-mini-grid span {{
+            color: #475569;
+            font-size: 12px;
+            line-height: 1.4;
+        }}
+
+        .recommendation-lab {{
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        }}
+
+        .section-heading-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }}
+
+        .section-heading-row h2 {{
+            margin: 0 0 8px;
+            font-size: 26px;
+        }}
+
+        .section-heading-row p {{
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }}
+
+        .soft-link-button {{
+            text-decoration: none;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-weight: 900;
+            white-space: nowrap;
+            font-size: 14px;
+        }}
+
+        .mini-pick-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }}
+
+        .mini-pick-card {{
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 18px;
+        }}
+
+        .mini-pick-label {{
+            color: #1d4ed8;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }}
+
+        .mini-pick-card h3 {{
+            font-size: 16px;
+            line-height: 1.45;
+            margin: 0 0 10px;
+        }}
+
+        .mini-pick-card p {{
+            color: #475569;
+            line-height: 1.5;
+            margin: 0 0 12px;
+        }}
+
+        .mini-pick-card a {{
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-weight: 800;
+        }}
+
+        .purchase-checklist {{
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: 0.9fr 1.1fr;
+            gap: 20px;
+            align-items: center;
+        }}
+
+        .purchase-checklist h2 {{
+            margin: 0 0 10px;
+            font-size: 26px;
+        }}
+
+        .purchase-checklist p {{
+            color: #475569;
+            line-height: 1.7;
+            margin: 0;
+        }}
+
+        .checklist-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }}
+
+        .checklist-grid div {{
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            text-align: center;
+            padding: 12px;
+            font-weight: 900;
+            color: #1e3a8a;
+        }}
+
+
+        .quick-filter-panel {{
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            max-width: 560px;
+        }}
+
+        .quick-filter-panel a {{
+            text-decoration: none;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            padding: 9px 12px;
+            font-weight: 900;
+            white-space: nowrap;
+            font-size: 13px;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }}
+
+        .quick-filter-panel a:hover {{
+            background: #bfdbfe;
+            transform: translateY(-1px);
+        }}
+
     </style>
 </head>
 
@@ -2042,9 +2684,9 @@ def render_page(result=None):
     </header>
 
     <main>
-        {render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_value)}
-
+        {render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_value, price_value)}
         {result_html}
+        {render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_value)}
 
         {render_roadmap_section()}
     </main>

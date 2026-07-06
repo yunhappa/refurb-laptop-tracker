@@ -1131,6 +1131,44 @@ def render_criteria_section():
     """
 
 
+
+def render_learning_links_section():
+    return """
+    <section class="learning-links-box">
+        <div class="section-heading-row">
+            <div>
+                <h2>처음 고르는 분을 위한 안내</h2>
+                <p>
+                    리퍼·중고 노트북은 가격만으로 판단하기 어렵습니다.
+                    구매 전에 어떤 기준을 봐야 하는지 짧게 정리해 두었습니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="learning-card-grid">
+            <a class="learning-card" href="/guide">
+                <span>GUIDE</span>
+                <h3>리퍼 노트북 고르는 법</h3>
+                <p>가격, 사양, 판매처, 보증 조건을 어떤 순서로 보면 좋은지 정리했습니다.</p>
+            </a>
+
+            <a class="learning-card" href="/checklist">
+                <span>CHECKLIST</span>
+                <h3>구매 전 체크리스트</h3>
+                <p>배터리, 외관, 윈도우 포함 여부, 반품 조건 등 꼭 확인할 항목입니다.</p>
+            </a>
+
+            <a class="learning-card" href="/about">
+                <span>ABOUT</span>
+                <h3>리퍼 트래커의 판단 방식</h3>
+                <p>평균가, 최저가, 관측 수, 판매처 수를 어떻게 참고하는지 설명합니다.</p>
+            </a>
+        </div>
+    </section>
+    """
+
+
+
 def render_roadmap_section():
     return """
     
@@ -1619,6 +1657,7 @@ def render_page(result=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="리퍼·중고 노트북 가격과 사양을 비교하고, 평균가·최저가·판매처 수를 바탕으로 먼저 볼 만한 후보를 찾아보는 서비스입니다.">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
     <style>
         body {{
@@ -2434,6 +2473,15 @@ def render_page(result=None):
 
             .pros-cons-grid {{
                 grid-template-columns: 1fr;
+            }}
+
+            .learning-card-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .learning-links-box {{
+                padding: 18px;
+                border-radius: 14px;
             }}
 
             .section-mini-badge {{
@@ -3473,6 +3521,61 @@ def render_page(result=None):
             scroll-margin-top: 72px;
         }}
 
+
+        .learning-links-box {{
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            margin-bottom: 28px;
+        }}
+
+        .learning-card-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 18px;
+        }}
+
+        .learning-card {{
+            display: block;
+            text-decoration: none;
+            background: #f8fafc;
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }}
+
+        .learning-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.10);
+            border-color: #93c5fd;
+        }}
+
+        .learning-card span {{
+            display: inline-block;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.4px;
+            margin-bottom: 8px;
+        }}
+
+        .learning-card h3 {{
+            margin: 0 0 8px;
+            color: #111827;
+            font-size: 19px;
+        }}
+
+        .learning-card p {{
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+            font-size: 14px;
+        }}
+
     </style>
 </head>
 
@@ -3508,7 +3611,381 @@ def render_page(result=None):
 </html>
 """
 
+
+def render_static_page(title, subtitle, body_html, description):
+    return f"""
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{esc(title)} | 리퍼 트래커</title>
+    <meta name="description" content="{esc(description)}">
+    <style>
+        * {{
+            box-sizing: border-box;
+        }}
+
+        body {{
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+        }}
+
+        .page-header {{
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 42px 22px 46px;
+        }}
+
+        .page-header-inner {{
+            max-width: 980px;
+            margin: 0 auto;
+        }}
+
+        .top-link {{
+            display: inline-block;
+            color: #dbeafe;
+            text-decoration: none;
+            font-weight: 800;
+            margin-bottom: 18px;
+        }}
+
+        .page-header h1 {{
+            font-size: 40px;
+            line-height: 1.22;
+            margin: 0 0 12px;
+            letter-spacing: -1px;
+        }}
+
+        .page-header p {{
+            max-width: 760px;
+            margin: 0;
+            color: #dbeafe;
+            line-height: 1.7;
+            font-size: 17px;
+        }}
+
+        main {{
+            max-width: 980px;
+            margin: 28px auto 48px;
+            padding: 0 18px;
+        }}
+
+        .content-card {{
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 22px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+            padding: 34px;
+        }}
+
+        .content-card h2 {{
+            font-size: 26px;
+            margin: 30px 0 12px;
+            color: #1e3a8a;
+        }}
+
+        .content-card h2:first-child {{
+            margin-top: 0;
+        }}
+
+        .content-card p {{
+            color: #334155;
+            line-height: 1.82;
+            font-size: 16px;
+        }}
+
+        .content-card ul {{
+            margin: 10px 0 22px;
+            padding-left: 22px;
+            color: #334155;
+            line-height: 1.85;
+        }}
+
+        .content-card li {{
+            margin-bottom: 7px;
+        }}
+
+        .tip-box {{
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin: 22px 0;
+        }}
+
+        .tip-box b {{
+            color: #1d4ed8;
+        }}
+
+        .cta-box {{
+            margin-top: 30px;
+            background: #0f172a;
+            color: white;
+            border-radius: 18px;
+            padding: 24px;
+        }}
+
+        .cta-box p {{
+            color: #e2e8f0;
+        }}
+
+        .cta-box a {{
+            display: inline-block;
+            text-decoration: none;
+            background: #2563eb;
+            color: white;
+            border-radius: 999px;
+            padding: 12px 16px;
+            font-weight: 900;
+            margin-top: 8px;
+        }}
+
+        .sub-links {{
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+        }}
+
+        .sub-links a {{
+            text-decoration: none;
+            color: #1d4ed8;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            padding: 9px 13px;
+            font-weight: 800;
+            font-size: 14px;
+        }}
+
+        @media (max-width: 700px) {{
+            .page-header h1 {{
+                font-size: 30px;
+            }}
+
+            .content-card {{
+                padding: 22px;
+                border-radius: 16px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="page-header-inner">
+            <a class="top-link" href="/">← 리퍼 트래커로 돌아가기</a>
+            <h1>{esc(title)}</h1>
+            <p>{esc(subtitle)}</p>
+        </div>
+    </header>
+
+    <main>
+        <article class="content-card">
+            {body_html}
+
+            <div class="cta-box">
+                <h2>직접 조건을 넣어 비교해 보세요</h2>
+                <p>
+                    브랜드, RAM, SSD, 예산을 입력하면 현재 수집 데이터 기준으로 먼저 볼 만한 후보를 확인할 수 있습니다.
+                </p>
+                <a href="/">리퍼 트래커에서 검색하기</a>
+            </div>
+
+            <div class="sub-links">
+                <a href="/guide">리퍼 노트북 고르는 법</a>
+                <a href="/checklist">구매 전 체크리스트</a>
+                <a href="/about">판단 방식 보기</a>
+            </div>
+        </article>
+    </main>
+</body>
+</html>
+"""
+
+
+def render_guide_page():
+    body = """
+    <h2>처음에는 가격보다 조건을 먼저 정하세요</h2>
+    <p>
+        리퍼·중고 노트북은 같은 모델처럼 보여도 RAM, SSD, CPU, 보증 조건, 제품 상태가 다를 수 있습니다.
+        그래서 단순히 가장 싼 상품을 고르기보다, 먼저 내가 필요한 최소 조건을 정해두는 편이 좋습니다.
+    </p>
+
+    <div class="tip-box">
+        <b>기본 추천 조건</b><br>
+        일반적인 문서 작업, 온라인 강의, 웹서핑, 가벼운 업무라면 RAM 16GB, SSD 512GB 이상부터 보는 것을 권합니다.
+    </div>
+
+    <h2>가격은 평균가와 함께 보세요</h2>
+    <p>
+        리퍼 상품은 판매처마다 가격 차이가 큽니다. 현재가가 낮아 보여도 원래 그 모델의 평균 가격과 비교해야
+        실제로 저렴한지 판단할 수 있습니다.
+    </p>
+    <ul>
+        <li>현재 가격이 평균가보다 낮은지 확인합니다.</li>
+        <li>최근 관측 최저가에 가까운지 확인합니다.</li>
+        <li>판매처가 여러 곳인지 확인합니다.</li>
+        <li>가격 차이가 너무 크면 제품 상태나 보증 조건이 다른지 확인합니다.</li>
+    </ul>
+
+    <h2>판매처 수가 많을수록 비교하기 쉽습니다</h2>
+    <p>
+        같은 모델을 여러 판매처가 팔고 있다면 가격 비교가 조금 더 쉽습니다. 반대로 판매처가 한 곳뿐이라면
+        가격이 괜찮아 보여도 상세 페이지를 더 꼼꼼히 확인해야 합니다.
+    </p>
+
+    <h2>리퍼·중고는 마지막 확인이 중요합니다</h2>
+    <p>
+        데이터는 후보를 좁혀주는 데 도움이 되지만, 최종 구매 전에는 상품 상세 페이지에서 제품 상태와 반품 조건을 직접 확인해야 합니다.
+    </p>
+    """
+    return render_static_page(
+        "리퍼 노트북 고르는 법",
+        "처음 리퍼·중고 노트북을 고를 때 가격, 사양, 판매처를 어떤 순서로 보면 좋은지 정리했습니다.",
+        body,
+        "리퍼 노트북을 고를 때 확인해야 할 가격, 사양, 판매처, 보증 조건을 정리한 안내 페이지입니다."
+    )
+
+
+def render_checklist_page():
+    body = """
+    <h2>1. 사양 확인</h2>
+    <ul>
+        <li>RAM은 최소 16GB 이상인지 확인합니다.</li>
+        <li>SSD는 최소 512GB 이상인지 확인합니다.</li>
+        <li>CPU 모델과 세대가 명확히 표시되어 있는지 봅니다.</li>
+        <li>윈도우 포함 여부를 확인합니다.</li>
+    </ul>
+
+    <h2>2. 제품 상태 확인</h2>
+    <ul>
+        <li>외관 등급이 적혀 있는지 확인합니다.</li>
+        <li>액정, 키보드, 힌지, 포트 상태를 확인합니다.</li>
+        <li>배터리 상태나 사이클 수가 표시되어 있는지 봅니다.</li>
+        <li>구성품이 충전기 포함인지 확인합니다.</li>
+    </ul>
+
+    <h2>3. 가격과 판매 조건 확인</h2>
+    <ul>
+        <li>배송비가 별도인지 확인합니다.</li>
+        <li>반품 가능 여부와 반품 배송비를 확인합니다.</li>
+        <li>보증 기간이 있는지 확인합니다.</li>
+        <li>같은 모델의 다른 판매처 가격도 함께 봅니다.</li>
+    </ul>
+
+    <div class="tip-box">
+        <b>주의할 점</b><br>
+        너무 싼 상품은 이유가 있을 수 있습니다. 부품용, 액정 파손, 배터리 불량, 윈도우 미포함 같은 조건이 숨어 있을 수 있으니
+        제목과 상세 설명을 꼭 확인하세요.
+    </div>
+
+    <h2>4. 구매 전 마지막 질문</h2>
+    <ul>
+        <li>이 가격이 평균가보다 충분히 낮은가?</li>
+        <li>상세 페이지에서 제품 상태가 명확한가?</li>
+        <li>반품이나 보증이 가능한가?</li>
+        <li>내가 필요한 RAM, SSD, CPU 조건을 충족하는가?</li>
+    </ul>
+    """
+    return render_static_page(
+        "중고·리퍼 노트북 구매 전 체크리스트",
+        "구매 전에 사양, 제품 상태, 보증, 반품 조건을 빠뜨리지 않고 확인할 수 있도록 정리했습니다.",
+        body,
+        "중고 노트북과 리퍼 노트북을 구매하기 전 확인해야 할 사양, 배터리, 보증, 반품 조건 체크리스트입니다."
+    )
+
+
+def render_about_page():
+    body = """
+    <h2>리퍼 트래커는 무엇을 하나요?</h2>
+    <p>
+        리퍼 트래커는 네이버 쇼핑의 공개 상품 데이터를 수집해 리퍼·중고 노트북의 가격과 사양을 비교하는 도구입니다.
+        사용자가 브랜드, RAM, SSD, CPU, 예산을 입력하면 조건에 맞는 후보를 찾아 보여줍니다.
+    </p>
+
+    <h2>어떤 기준으로 판단하나요?</h2>
+    <p>
+        리퍼 트래커는 단순히 가장 싼 상품만 보여주지 않습니다. 현재 가격이 평균가보다 낮은지, 관측 최저가에 가까운지,
+        판매처 수와 관측 수가 충분한지, RAM과 SSD 조건이 실사용에 적합한지를 함께 봅니다.
+    </p>
+
+    <ul>
+        <li>현재가와 평균가 비교</li>
+        <li>최근 최저가 여부</li>
+        <li>판매처 수와 관측 수</li>
+        <li>RAM, SSD, CPU 사양</li>
+        <li>동일·유사 모델 간 가격 차이</li>
+    </ul>
+
+    <h2>점수는 참고용입니다</h2>
+    <p>
+        리퍼·중고 상품은 실제 상태가 매우 중요합니다. 같은 모델이라도 외관, 배터리, 보증 기간, 구성품에 따라 가치가 달라질 수 있습니다.
+        그래서 리퍼 트래커의 점수는 구매 결정을 대신하는 것이 아니라, 먼저 살펴볼 후보를 좁혀주는 참고 정보입니다.
+    </p>
+
+    <h2>앞으로 보완할 점</h2>
+    <p>
+        데이터가 더 쌓이면 가격 흐름을 더 안정적으로 볼 수 있습니다. 이후에는 관심 모델 저장, 가격 하락 알림,
+        판매처 신뢰도 반영, CPU 세대 분석 같은 기능으로 확장할 수 있습니다.
+    </p>
+    """
+    return render_static_page(
+        "리퍼 트래커의 판단 방식",
+        "리퍼 트래커가 가격, 평균가, 최저가, 판매처 수, 사양 정보를 어떻게 참고하는지 설명합니다.",
+        body,
+        "리퍼 트래커가 리퍼·중고 노트북의 가격과 사양을 비교하고 구매 후보를 판단하는 방식을 설명합니다."
+    )
+
 app = Flask(__name__)
+
+
+
+@app.route("/guide")
+def guide():
+    return Response(render_guide_page(), mimetype="text/html; charset=utf-8")
+
+
+@app.route("/checklist")
+def checklist():
+    return Response(render_checklist_page(), mimetype="text/html; charset=utf-8")
+
+
+@app.route("/about")
+def about():
+    return Response(render_about_page(), mimetype="text/html; charset=utf-8")
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    content = """User-agent: *
+Allow: /
+Sitemap: https://refurb-laptop-tracker.onrender.com/sitemap.xml
+"""
+    return Response(content, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://refurb-laptop-tracker.onrender.com/</loc>
+  </url>
+  <url>
+    <loc>https://refurb-laptop-tracker.onrender.com/guide</loc>
+  </url>
+  <url>
+    <loc>https://refurb-laptop-tracker.onrender.com/checklist</loc>
+  </url>
+  <url>
+    <loc>https://refurb-laptop-tracker.onrender.com/about</loc>
+  </url>
+</urlset>
+"""
+    return Response(content, mimetype="application/xml; charset=utf-8")
 
 
 @app.route("/")

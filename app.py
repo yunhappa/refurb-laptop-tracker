@@ -326,8 +326,8 @@ def render_sort_controls(result):
     return f"""
     <div class="result-toolbar">
         <div>
-            <b>결과 정렬</b>
-            <span>상황에 따라 추천순, 낮은 가격순, 판매처 많은 순으로 바꿔 볼 수 있습니다.</span>
+            <b>정렬 바꾸기</b>
+            <span>가격을 먼저 볼지, 가성비를 먼저 볼지, 판매처가 많은 상품을 먼저 볼지 선택할 수 있습니다.</span>
         </div>
         <div class="sort-links">
             {''.join(links)}
@@ -424,7 +424,7 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
     exact_products.sort(key=product_sort_key, reverse=True)
 
     if exact_products:
-        search_type = "정확히 일치하는 검색 결과"
+        search_type = "조건에 맞는 상품"
         products = exact_products
     else:
         relaxed_cpu_products = [
@@ -434,7 +434,7 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
         relaxed_cpu_products.sort(key=product_sort_key, reverse=True)
 
         if relaxed_cpu_products:
-            search_type = "유사 상품 추천: CPU 조건을 제외한 결과"
+            search_type = "CPU 조건을 조금 넓혀 찾은 상품"
             products = relaxed_cpu_products
         else:
             relaxed_price_products = [
@@ -444,7 +444,7 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
             relaxed_price_products.sort(key=product_sort_key, reverse=True)
 
             if relaxed_price_products:
-                search_type = "유사 상품 추천: CPU와 최대 가격 조건을 제외한 결과"
+                search_type = "CPU와 가격 조건을 조금 넓혀 찾은 상품"
                 products = relaxed_price_products
             else:
                 keyword_only_products = [
@@ -454,10 +454,10 @@ def search_products(keyword_input, ram_input, ssd_input, cpu_input, max_price_in
                 keyword_only_products.sort(key=product_sort_key, reverse=True)
 
                 if keyword_only_products:
-                    search_type = "유사 상품 추천: 키워드만 적용한 결과"
+                    search_type = "키워드 기준으로 찾은 상품"
                     products = keyword_only_products
                 else:
-                    search_type = "검색 결과 없음"
+                    search_type = "조건에 맞는 상품이 없습니다"
                     products = []
 
     sort_key = normalize_sort_key(sort_input)
@@ -494,27 +494,27 @@ def make_summary_sentence(product):
 
     if decision == "구매 추천":
         return (
-            f"추천 요약: 현재 조건에서는 구매 추천 상품입니다. "
+            f"한줄 판단: 조건이 잘 맞는 편입니다. "
             f"가성비 점수는 {value_score}점이며, 동일 모델을 여러 판매처에서 비교할 수 있습니다."
         )
     if decision == "구매 고려":
         return (
-            f"추천 요약: 현재 조건에서는 구매를 고려할 만한 상품입니다. "
+            f"한줄 판단: 후보에 올려두고 비교해 볼 만합니다. "
             f"가성비 점수는 {value_score}점이며, 판매처 {mall_count}곳의 가격 비교가 가능합니다."
         )
     if decision == "데이터 부족":
         return (
-            f"추천 요약: 가성비 점수는 {value_score}점으로 높지만, "
-            f"동일 모델 비교 데이터가 부족하여 추가 확인이 필요합니다."
+            f"한줄 판단: 가성비 점수는 {value_score}점으로 높지만, "
+            f"비교할 만한 같은 모델이 적어 상세 페이지 확인이 필요합니다."
         )
     if price_gap >= 100000:
         return (
-            "추천 요약: 현재 기준으로는 보류입니다. "
-            "다만 판매처별 가격 차이가 커서 최저가 확인은 필요합니다."
+            "한줄 판단: 지금 바로 고르기에는 아쉬운 점이 있습니다. "
+            "다만 판매처마다 가격 차이가 커서 최저가와 상품 상태를 함께 확인해 보세요."
         )
     return (
-        "추천 요약: 현재 기준으로는 보류입니다. "
-        "가성비 점수가 상대적으로 낮거나 비교 데이터가 충분하지 않습니다."
+        "한줄 판단: 지금 바로 고르기에는 아쉬운 점이 있습니다. "
+        "가격이나 비교 데이터가 아직 충분히 매력적이지 않습니다."
     )
 
 
@@ -543,10 +543,10 @@ def get_confidence_label(product):
     comparison_count = max(mall_count, seller_count)
 
     if comparison_count >= 4 or observed_count >= 120:
-        return "높음", "동일·유사 모델의 비교 데이터가 비교적 충분합니다."
+        return "높음", "비교할 만한 같은 계열 상품이 비교적 충분합니다."
     if comparison_count >= 2 or observed_count >= 50:
-        return "보통", "비교 가능한 판매처나 관측 데이터가 일부 확보되었습니다."
-    return "낮음", "비교 데이터가 적어 실제 상품 페이지 확인이 특히 중요합니다."
+        return "보통", "가격을 비교해 볼 만한 데이터가 어느 정도 있습니다."
+    return "낮음", "비교 데이터가 적어 상세 페이지 확인이 특히 중요합니다."
 
 
 def make_recommendation_points(product):
@@ -572,31 +572,31 @@ def make_recommendation_points(product):
         points.append(" / ".join(spec_parts) + " 조건을 기준으로 비교했습니다.")
 
     if value_score >= 280:
-        points.append("가성비 점수가 높은 편이라 우선 검토할 만합니다.")
+        points.append("가성비 점수가 높은 편이라 먼저 볼 만합니다.")
     elif value_score >= 240:
-        points.append("가성비 점수가 기준선에 가까워 구매 고려 대상으로 볼 수 있습니다.")
+        points.append("가성비 점수가 나쁘지 않아 비교 후보로 볼 수 있습니다.")
     else:
-        points.append("가성비 점수가 상대적으로 낮아 신중한 확인이 필요합니다.")
+        points.append("가성비 점수만 보면 조금 신중하게 볼 필요가 있습니다.")
 
     comparison_count = max(mall_count, seller_count)
     if comparison_count >= 2:
-        points.append(f"동일·유사 모델 {comparison_count}개 기준으로 가격 비교가 가능합니다.")
+        points.append(f"비슷한 모델 {comparison_count}개를 기준으로 가격을 비교했습니다.")
     else:
-        points.append("동일 모델 비교 데이터가 적어 판매 페이지 확인이 필요합니다.")
+        points.append("비교할 만한 같은 모델이 적어 상세 페이지 확인이 필요합니다.")
 
     if price_gap >= 100000:
-        points.append(f"판매처별 가격 차이가 {price_gap:,}원으로 커서 최저가 확인 가치가 큽니다.")
+        points.append(f"판매처마다 가격 차이가 {price_gap:,}원까지 벌어져 최저가와 상품 상태를 함께 볼 필요가 있습니다.")
     elif price_gap > 0:
         points.append(f"판매처별 가격 차이는 {price_gap:,}원입니다.")
 
     if decision == "구매 추천":
-        points.append("현재 기준에서는 가격과 사양 조건이 좋아 구매 추천으로 분류했습니다.")
+        points.append("가격과 사양 조건이 좋아 우선 추천으로 분류했습니다.")
     elif decision == "구매 고려":
-        points.append("현재 기준에서는 바로 구매보다는 조건 확인 후 구매 고려가 적합합니다.")
+        points.append("바로 결정하기보다는 상세 조건을 확인한 뒤 비교해 보세요.")
     elif decision == "데이터 부족":
-        points.append("점수는 나쁘지 않지만 비교 데이터가 부족해 추가 확인이 필요합니다.")
+        points.append("점수는 나쁘지 않지만 비교 데이터가 부족합니다.")
     else:
-        points.append("현재 기준에서는 가격 또는 비교 데이터 측면에서 보류가 적합합니다.")
+        points.append("가격이나 비교 데이터만 보면 아직은 보류에 가깝습니다.")
 
     return points[:5]
 
@@ -658,7 +658,7 @@ def get_market_signal():
         best_decision = best_product.get("buy_decision", "")
         best_link = best_product.get("link", "")
     else:
-        best_title = "추천 후보 없음"
+        best_title = "아직 보여줄 후보가 없습니다"
         best_price = 0
         best_score = 0
         best_decision = "-"
@@ -671,7 +671,7 @@ def get_market_signal():
         timing_discount = best_price_row.get("change_rate", "")
         timing_link = best_price_row.get("link", "") or best_price_row.get("product_link", "")
     else:
-        timing_title = "가격 이력 후보 없음"
+        timing_title = "아직 가격 이력 후보가 없습니다"
         timing_price = 0
         timing_score = 0
         timing_discount = "-"
@@ -696,7 +696,7 @@ def get_market_signal():
 def render_signal_link(url):
     if not url:
         return ""
-    return f'<a class="signal-link-button" href="{esc(url)}" target="_blank">상품 페이지 열기</a>'
+    return f'<a class="signal-link-button" href="{esc(url)}" target="_blank">상품 페이지 보기</a>'
 
 
 def render_compact_product_pick(product, label):
@@ -704,8 +704,8 @@ def render_compact_product_pick(product, label):
         return f"""
         <div class="mini-pick-card">
             <div class="mini-pick-label">{esc(label)}</div>
-            <h3>이 예산 구간의 후보가 아직 부족합니다</h3>
-            <p>데이터가 더 쌓이면 예산별 추천 정확도가 높아집니다.</p>
+            <h3>이 예산대는 아직 후보가 적습니다</h3>
+            <p>데이터가 더 쌓이면 이 구간도 더 자연스럽게 보여드릴 수 있습니다.</p>
         </div>
         """
 
@@ -749,36 +749,36 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
     return f"""
     <section class="service-landing">
         <div class="landing-left">
-            <div class="landing-kicker">SMART REFURB BUYING ASSISTANT</div>
-            <h2>지금 살 만한 리퍼 노트북을<br>데이터로 바로 좁혀드립니다</h2>
+            <div class="landing-kicker">REFURB LAPTOP CHECKER</div>
+            <h2>리퍼 노트북,<br>가격만 보고 고르기 어렵다면</h2>
             <p>
-                단순 최저가 검색이 아니라, 평균가·최저가·관측 수·판매처 수·사양 점수를 함께 비교해
-                현재 구매 타이밍이 괜찮은 후보를 먼저 보여줍니다.
+                현재가, 평균가, 최저가, 판매처 수, 기본 사양을 함께 보고
+                먼저 살펴볼 만한 후보를 골라 보여드립니다.
             </p>
 
             <div id="purpose" class="purpose-panel">
                 <div class="purpose-panel-title">
-                    <b>목적별 추천 모드</b>
-                    <span>사용 목적을 고르면 조건이 자동으로 적용됩니다.</span>
+                    <b>용도별로 먼저 보기</b>
+                    <span>어떤 용도로 쓸지 고르면 기본 조건을 채워드립니다.</span>
                 </div>
                 <div class="purpose-grid">
                     <a class="purpose-card" href="/?purpose=student&ram=16GB&ssd=512GB&max_price=700000&sort=recommend#results">
-                        <b>대학생용</b><span>강의·과제·문서작업</span>
+                        <b>대학생용</b><span>강의·과제·문서 작업</span>
                     </a>
                     <a class="purpose-card" href="/?purpose=office&keyword=ThinkPad&ram=16GB&ssd=512GB&max_price=700000&sort=recommend#results">
-                        <b>사무용</b><span>업무용 ThinkPad 중심</span>
+                        <b>사무용</b><span>문서 작업과 업무용</span>
                     </a>
                     <a class="purpose-card" href="/?purpose=portable&keyword=LG그램&ram=16GB&ssd=512GB&sort=price_asc#results">
-                        <b>휴대용</b><span>가벼운 LG그램 중심</span>
+                        <b>휴대용</b><span>가벼운 노트북 중심</span>
                     </a>
                     <a class="purpose-card" href="/?purpose=developer&ram=32GB&ssd=1TB&max_price=1000000&sort=value_desc#results">
-                        <b>개발용</b><span>32GB / 1TB 우선</span>
+                        <b>개발용</b><span>여유 있는 메모리·저장공간</span>
                     </a>
                     <a class="purpose-card" href="/?purpose=power&ram=32GB&ssd=1TB&cpu=i7&sort=value_desc#results">
-                        <b>고성능</b><span>i7급 고사양 후보</span>
+                        <b>고성능</b><span>성능을 우선 볼 때</span>
                     </a>
                     <a class="purpose-card" href="/?purpose=budget&ram=16GB&ssd=512GB&max_price=500000&sort=value_desc#results">
-                        <b>가성비</b><span>50만원 이하 실사용</span>
+                        <b>가성비</b><span>예산을 아끼고 싶을 때</span>
                     </a>
                 </div>
             </div>
@@ -791,21 +791,21 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
                     <input type="text" name="cpu" value="{cpu_value}" placeholder="CPU 예: i5, i7">
                     <input type="text" name="max_price" value="{price_value}" placeholder="최대 가격 예: 700000">
                 </div>
-                <button type="submit">내 조건으로 추천 보기</button>
+                <button type="submit">조건에 맞는 후보 보기</button>
             </form>
 
             <div class="hero-quick-chips">
-                <a href="/?keyword=삼성&ram=16GB&ssd=512GB#results">삼성 16GB/512GB</a>
-                <a href="/?keyword=ThinkPad#results">ThinkPad 전체</a>
-                <a href="/?keyword=LG그램#results">LG그램 전체</a>
-                <a href="/?keyword=맥북#results">맥북 전체</a>
-                <a href="/?max_price=700000#results">70만원 이하 전체</a>
+                <a href="/?keyword=삼성&ram=16GB&ssd=512GB#results">삼성 16GB·512GB</a>
+                <a href="/?keyword=ThinkPad#results">ThinkPad</a>
+                <a href="/?keyword=LG그램#results">LG그램</a>
+                <a href="/?keyword=맥북#results">맥북</a>
+                <a href="/?max_price=700000#results">70만원 이하</a>
             </div>
         </div>
 
         <div class="landing-right">
             <div class="signal-card primary-signal">
-                <div class="signal-label">오늘의 가장 강한 구매 후보</div>
+                <div class="signal-label">오늘 먼저 볼 만한 후보</div>
                 <h3>{best_title}</h3>
                 <div class="signal-metrics">
                     <span>{signal["best_price"]:,}원</span>
@@ -816,11 +816,11 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
             </div>
 
             <div class="signal-card">
-                <div class="signal-label">가격 이력상 눈에 띄는 후보</div>
+                <div class="signal-label">최근 가격 흐름이 괜찮은 후보</div>
                 <h3>{timing_title}</h3>
                 <div class="signal-metrics">
                     <span>{signal["timing_price"]:,}원</span>
-                    <span>구매 적기 {signal["timing_score"]:.1f}점</span>
+                    <span>구매 타이밍 {signal["timing_score"]:.1f}점</span>
                     <span>평균 대비 {esc(signal["timing_discount"])}%</span>
                 </div>
                 {render_signal_link(signal.get("timing_link", ""))}
@@ -833,11 +833,11 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
                 </div>
                 <div>
                     <b>{signal["stats"]["model_group_count"]:,}</b>
-                    <span>모델/사양 그룹</span>
+                    <span>비교 그룹</span>
                 </div>
                 <div>
                     <b>{esc(latest_info["latest_update"])}</b>
-                    <span>최근 데이터 갱신</span>
+                    <span>최근 갱신</span>
                 </div>
             </div>
         </div>
@@ -846,17 +846,17 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
     <section class="recommendation-lab">
         <div class="section-heading-row">
             <div>
-                <h2>예산별 바로 볼 만한 후보</h2>
-                <p>예산 구간별 대표 후보를 보여주고, 오른쪽 빠른 탐색 옵션을 누르면 바로 아래 검색 결과에서 해당 조건의 후보를 확인할 수 있습니다.</p>
+                <h2>예산별로 먼저 볼 만한 후보</h2>
+                <p>예산대별로 하나씩 골라봤습니다. 오른쪽 버튼을 누르면 원하는 조건의 상품 목록으로 바로 이동합니다.</p>
             </div>
             <div class="quick-filter-panel">
-                <a href="/?ram=16GB&ssd=512GB#results">16GB / 512GB 전체</a>
-                <a href="/?ram=32GB&ssd=1TB#results">32GB / 1TB 고사양</a>
-                <a href="/?max_price=700000#results">70만원 이하 전체</a>
-                <a href="/?keyword=삼성#results">삼성 전체</a>
-                <a href="/?keyword=LG그램#results">LG그램 전체</a>
-                <a href="/?keyword=ThinkPad#results">ThinkPad 전체</a>
-                <a href="/?keyword=맥북#results">맥북 전체</a>
+                <a href="/?ram=16GB&ssd=512GB#results">16GB·512GB</a>
+                <a href="/?ram=32GB&ssd=1TB#results">32GB·1TB</a>
+                <a href="/?max_price=700000#results">70만원 이하</a>
+                <a href="/?keyword=삼성#results">삼성</a>
+                <a href="/?keyword=LG그램#results">LG그램</a>
+                <a href="/?keyword=ThinkPad#results">ThinkPad</a>
+                <a href="/?keyword=맥북#results">맥북</a>
             </div>
         </div>
         <div class="mini-pick-grid">
@@ -872,8 +872,8 @@ def render_purchase_checklist_section():
     return """
     <section class="purchase-checklist">
         <div>
-            <h2>구매 전 마지막 체크리스트</h2>
-            <p>리퍼·중고 노트북은 가격만큼 상태 확인이 중요합니다. 상품 페이지에서 아래 항목을 꼭 확인하세요.</p>
+            <h2>구매 전에 꼭 확인하세요</h2>
+            <p>리퍼·중고 노트북은 가격만큼 상태가 중요합니다. 구매 전 아래 항목을 꼭 확인해 보세요.</p>
         </div>
         <div class="checklist-grid">
             <div>보증 기간</div>
@@ -893,32 +893,32 @@ def render_project_summary_section():
 
     return f"""
     <section class="project-summary-box">
-        <h2>프로젝트 현황 요약</h2>
+        <h2>현재 수집 현황</h2>
         <p class="summary-intro">
-            네이버 쇼핑 API를 통해 리퍼/중고 노트북 데이터를 수집하고,
-            실사용 후보 필터링, 가성비 점수화, 모델·사양별 그룹화, 구매 판단까지 수행했습니다.
+            네이버 쇼핑의 공개 상품 정보를 모아 가격과 사양을 정리했습니다.
+            실사용 후보를 걸러내고, 비슷한 모델끼리 묶어 비교할 수 있게 했습니다.
         </p>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">전체 수집 기록</div>
+                <div class="stat-label">누적 수집 기록</div>
                 <div class="stat-number">{stats["raw_count"]:,}</div>
-                <div class="stat-desc">누적 가격 관측 데이터</div>
+                <div class="stat-desc">지금까지 모은 가격 기록</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">고유 상품 ID</div>
+                <div class="stat-label">수집 상품 ID</div>
                 <div class="stat-number">{stats["unique_product_count"]:,}</div>
                 <div class="stat-desc">네이버 상품 ID 기준</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">실사용 후보</div>
                 <div class="stat-number">{stats["candidate_count"]:,}</div>
-                <div class="stat-desc">RAM 16GB 이상, SSD 512GB 이상</div>
+                <div class="stat-desc">RAM 16GB 이상 · SSD 512GB 이상</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">모델/사양 그룹</div>
+                <div class="stat-label">비교 그룹</div>
                 <div class="stat-number">{stats["model_group_count"]:,}</div>
-                <div class="stat-desc">중복 판매처를 묶은 비교 단위</div>
+                <div class="stat-desc">비슷한 상품을 묶어 본 기준</div>
             </div>
         </div>
 
@@ -935,15 +935,15 @@ def render_project_summary_section():
 
         <div class="update-status-box">
             <div class="update-status-item">
-                <div class="update-status-label">최근 데이터 갱신</div>
+                <div class="update-status-label">최근 갱신</div>
                 <div class="update-status-value">{esc(latest_info["latest_update"])}</div>
             </div>
             <div class="update-status-item">
-                <div class="update-status-label">자동 갱신 주기</div>
+                <div class="update-status-label">자동 갱신</div>
                 <div class="update-status-value">{esc(latest_info["auto_update"])}</div>
             </div>
             <div class="update-status-item">
-                <div class="update-status-label">현재 데이터 기준</div>
+                <div class="update-status-label">표시 가격 기준</div>
                 <div class="update-status-value">{esc(latest_info["data_basis"])}</div>
             </div>
         </div>
@@ -1019,7 +1019,7 @@ def render_price_history_section():
         <div class="price-card{extra_class}">
             <div class="price-rank">{index}위</div>
             <div class="price-badge">🔥 {timing_signal}</div>
-            <div class="timing-score">구매 적기 점수 <b>{buy_timing_score}</b>점</div>
+            <div class="timing-score">구매 타이밍 점수 <b>{buy_timing_score}</b>점</div>
 
             <h3>{title}</h3>
 
@@ -1033,10 +1033,10 @@ def render_price_history_section():
             </div>
 
             <p class="price-comment">
-                구매 적기 점수는 평균 대비 할인율, 최근 최저가 여부, 관측 수, 판매처 수를 종합한 값입니다.
+                현재가가 평균보다 낮은지, 최근 최저가에 가까운지, 비교 데이터가 충분한지를 함께 본 점수입니다.
             </p>
 
-            <a class="link-button" href="{link}" target="_blank">상품 페이지 열기</a>
+            <a class="link-button" href="{link}" target="_blank">상품 페이지 보기</a>
         </div>
         """
 
@@ -1044,8 +1044,8 @@ def render_price_history_section():
     if len(best_rows) > 4:
         toggle_html = """
         <label class="top8-toggle-label" for="top8-toggle">
-            <span class="show-more-text">TOP 8 전체 보기</span>
-            <span class="show-less-text">TOP 4만 보기</span>
+            <span class="show-more-text">8개 모두 보기</span>
+            <span class="show-less-text">4개만 보기</span>
         </label>
         """
 
@@ -1053,12 +1053,12 @@ def render_price_history_section():
     <section id="top8" class="price-history-box">
         <div class="section-title-row">
             <div>
-                <h2>구매 적기 점수 TOP 8</h2>
+                <h2>가격 흐름이 좋은 후보 TOP 8</h2>
                 <p class="summary-intro">
-                    처음에는 핵심 TOP 4만 보여주고, 필요하면 전체 TOP 8을 펼쳐 볼 수 있습니다.
+                    먼저 상위 4개만 보여드립니다. 더 보고 싶으면 전체 목록을 펼쳐 보세요.
                 </p>
             </div>
-            <div class="section-mini-badge">가격 이력 기반</div>
+            <div class="section-mini-badge">가격 이력 기준</div>
         </div>
 
         <input type="checkbox" id="top8-toggle" class="top8-toggle-input">
@@ -1075,26 +1075,26 @@ def render_price_history_section():
 def render_criteria_section():
     return """
     <section class="criteria-box">
-        <h2>판단 기준을 쉽게 이해하기</h2>
+        <h2>이렇게 판단합니다</h2>
         <p class="criteria-intro">
-            리퍼 트래커는 단순히 최저가만 보여주지 않습니다.
-            가격이 정말 괜찮은지, 비교 데이터가 충분한지, 실사용 사양을 만족하는지를 함께 봅니다.
+            가격이 싼지만 보지 않습니다.
+            평균가와 최저가, 판매처 수, 기본 사양을 함께 보고 후보를 나눕니다.
         </p>
 
         <div class="criteria-grid service-criteria-grid">
             <div class="criteria-card">
-                <h3>가격 매력도</h3>
-                <p>현재가가 평균가보다 얼마나 낮은지, 관측 최저가에 가까운지 확인합니다.</p>
+                <h3>가격이 괜찮은가</h3>
+                <p>현재 가격이 평균가보다 낮은지, 최근 최저가에 가까운지 봅니다.</p>
                 <div class="factor-row">
-                    <span>평균가 대비 할인</span>
-                    <span>최근 최저가 여부</span>
+                    <span>평균가와 비교</span>
+                    <span>최근 최저가</span>
                     <span>가격 차이</span>
                 </div>
             </div>
 
             <div class="criteria-card">
-                <h3>사양 적합도</h3>
-                <p>RAM, SSD, CPU 정보를 추출해 실사용에 적합한 기본 사양인지 판단합니다.</p>
+                <h3>사양이 충분한가</h3>
+                <p>RAM, SSD, CPU 정보를 보고 기본 사용에 무리가 없는지 확인합니다.</p>
                 <div class="factor-row">
                     <span>RAM</span>
                     <span>SSD</span>
@@ -1103,29 +1103,29 @@ def render_criteria_section():
             </div>
 
             <div class="criteria-card">
-                <h3>비교 신뢰도</h3>
-                <p>동일·유사 모델의 판매처 수와 관측 수가 충분할수록 판단 신뢰도가 높아집니다.</p>
+                <h3>비교할 데이터가 충분한가</h3>
+                <p>비슷한 모델의 판매처와 가격 기록이 많을수록 판단이 더 안정적입니다.</p>
                 <div class="factor-row">
                     <span>관측 수</span>
                     <span>판매처 수</span>
-                    <span>동일 모델 후보</span>
+                    <span>비슷한 모델</span>
                 </div>
             </div>
         </div>
 
         <div class="simple-rule-box">
-            <h3>결론은 네 단계로 보여줍니다</h3>
+            <h3>결과는 네 가지로 나눕니다</h3>
             <div class="simple-rule-grid">
-                <div><b>구매 추천</b><br>가격·사양·비교 데이터가 모두 좋은 편</div>
-                <div><b>구매 고려</b><br>조건은 괜찮지만 최종 확인 필요</div>
-                <div><b>데이터 부족</b><br>점수는 좋지만 비교 데이터가 적음</div>
-                <div><b>보류</b><br>현재 기준에서는 매력도가 낮음</div>
+                <div><b>구매 추천</b><br>가격과 사양이 모두 괜찮은 편</div>
+                <div><b>구매 고려</b><br>괜찮지만 상세 확인 필요</div>
+                <div><b>데이터 부족</b><br>점수는 좋지만 비교 자료가 적음</div>
+                <div><b>보류</b><br>지금은 매력이 크지 않음</div>
             </div>
         </div>
 
         <p class="criteria-note">
-            ※ 리퍼·중고 상품은 상태, 보증, 배송비, 반품 조건에 따라 실제 가치가 달라질 수 있습니다.
-            본 서비스의 판단은 구매 결정을 돕는 참고 정보이며, 최종 구매 전 상품 페이지 확인이 필요합니다.
+            ※ 리퍼·중고 상품은 상태, 보증, 배송비, 반품 조건에 따라 실제 가치가 달라집니다.
+            최종 구매 전에는 반드시 상품 페이지를 직접 확인해 주세요.
         </p>
     </section>
     """
@@ -1135,65 +1135,65 @@ def render_roadmap_section():
     return """
     
     <section id="notice" class="notice-box">
-        <h2>서비스 이용 안내</h2>
+        <h2>이용 전 참고해 주세요</h2>
         <p>
-            리퍼 트래커는 네이버 쇼핑 API로 수집한 공개 상품 데이터를 바탕으로
-            가격과 사양을 비교해 구매 판단을 돕는 정보 제공 서비스입니다.
+            리퍼 트래커는 네이버 쇼핑의 공개 상품 정보를 바탕으로
+            가격과 사양을 비교해 보는 참고용 도구입니다.
         </p>
         <div class="notice-grid">
             <div>
-                <h3>데이터 기준</h3>
-                <p>현재 표시되는 가격, 평균가, 최저가는 수집 시점의 데이터 기준입니다. 실제 판매 페이지의 가격과 조건은 달라질 수 있습니다.</p>
+                <h3>표시 가격 기준</h3>
+                <p>현재 표시되는 가격, 평균가, 최저가는 수집 시점의 표시 가격 기준입니다. 실제 판매 페이지의 가격과 조건은 달라질 수 있습니다.</p>
             </div>
             <div>
-                <h3>구매 판단 기준</h3>
-                <p>구매 적기 점수는 평균 대비 할인율, 최근 최저가 여부, 관측 수, 판매처 수 등을 종합해 계산한 참고 지표입니다.</p>
+                <h3>판단 기준</h3>
+                <p>구매 타이밍 점수는 평균 대비 할인율, 최근 최저가, 관측 수, 판매처 수 등을 종합해 계산한 참고 지표입니다.</p>
             </div>
             <div>
-                <h3>최종 확인 필요</h3>
-                <p>실제 구매 전에는 판매처, 제품 상태, 보증 여부, 배송비, 반품 조건을 반드시 직접 확인해야 합니다.</p>
+                <h3>마지막 확인</h3>
+                <p>구매 전에는 판매처, 제품 상태, 보증, 배송비, 반품 조건을 꼭 확인해 주세요.</p>
             </div>
         </div>
     </section>
 
 <section class="roadmap-box">
         <div class="future-title-row">
-            <h2>앞으로 계속 더 좋아집니다! 🚀</h2>
+            <h2>앞으로 보완할 기능</h2>
             <p>
-                현재 버전은 CSV 기반 프로토타입이지만, 데이터가 더 쌓일수록 가격 판단의 정확도를 높이고
-                더 편리한 구매 추천 서비스로 확장할 수 있습니다.
+                지금은 CSV 기반으로 시작했지만, 데이터가 쌓일수록 가격 흐름을 더 안정적으로 볼 수 있습니다.
+                앞으로는 관심 모델 저장, 가격 하락 알림 같은 기능도 붙일 수 있습니다.
             </p>
         </div>
 
         <div class="roadmap-grid">
             <div class="roadmap-card">
-                <h3>1. 더 많은 데이터 수집</h3>
-                <p>수집 기간이 길어질수록 평균가, 최저가, 가격 하락률 판단이 더 안정적으로 변합니다.</p>
+                <h3>1. 가격 기록 더 쌓기</h3>
+                <p>기간이 길어질수록 평균가와 최저가 판단이 더 안정됩니다.</p>
             </div>
 
             <div class="roadmap-card">
-                <h3>2. ClickHouse 대용량 분석</h3>
-                <p>장기간 누적 데이터를 ClickHouse에 적재하여 수십만 건 이상의 가격 이력을 빠르게 조회할 수 있습니다.</p>
+                <h3>2. 대용량 가격 이력 분석</h3>
+                <p>가격 기록이 많아지면 더 빠르게 조회하고 비교할 수 있는 구조로 확장할 수 있습니다.</p>
             </div>
 
             <div class="roadmap-card">
-                <h3>3. 가격 하락 알림</h3>
-                <p>관심 모델이 평균가보다 낮아지거나 최근 최저가가 되면 알림을 주는 기능으로 발전시킬 수 있습니다.</p>
+                <h3>3. 관심 모델 가격 알림</h3>
+                <p>관심 모델이 평균가보다 낮아지거나 최근 최저가에 가까워졌을 때 알려주는 기능을 붙일 수 있습니다.</p>
             </div>
 
             <div class="roadmap-card">
-                <h3>4. 사양 점수 고도화</h3>
-                <p>CPU 세대, 무게, 화면 크기, 보증 여부, 리퍼 등급, 판매처 신뢰도를 반영할 수 있습니다.</p>
+                <h3>4. 사양 판단 더 정교하게</h3>
+                <p>CPU 세대, 무게, 화면 크기, 보증 기간, 리퍼 등급 같은 요소도 반영할 수 있습니다.</p>
             </div>
 
             <div class="roadmap-card">
-                <h3>5. 사용자 맞춤 추천</h3>
-                <p>사용자의 검색 이력과 선호 사양을 바탕으로 더 적합한 상품을 우선 추천할 수 있습니다.</p>
+                <h3>5. 내 조건 저장</h3>
+                <p>자주 찾는 조건을 저장해 두고 다음에 바로 다시 볼 수 있게 할 수 있습니다.</p>
             </div>
         </div>
 
         <div class="future-message">
-            💙 사용자의 피드백과 데이터가 쌓일수록 더 똑똑한 리퍼 트래커로 발전합니다.
+            💙 데이터가 쌓일수록 더 쓸 만한 리퍼 노트북 비교 도구로 다듬어가겠습니다.
         </div>
     </section>
     """
@@ -1204,35 +1204,35 @@ def render_user_guide_section():
     <section class="guide-box">
         <div class="guide-header">
             <div>
-                <h2>이렇게 사용해 보세요</h2>
+                <h2>이렇게 써보세요</h2>
                 <p>
                     원하는 브랜드나 모델명, RAM, SSD, 예산을 입력하면
-                    현재 수집 데이터 기준으로 구매 후보를 비교해 줍니다.
+                    현재 수집 표시 가격 기준으로 구매 후보를 비교해 줍니다.
                 </p>
             </div>
-            <div class="guide-badge">처음 방문자를 위한 빠른 안내</div>
+            <div class="guide-badge">처음 쓰는 분을 위한 안내</div>
         </div>
 
         <div class="guide-grid">
             <div class="guide-card">
                 <div class="guide-step">1</div>
-                <h3>모델 또는 브랜드 입력</h3>
-                <p>삼성, LG그램, ThinkPad, 맥북처럼 관심 있는 키워드를 입력합니다.</p>
+                <h3>브랜드나 모델 입력</h3>
+                <p>삼성, LG그램, ThinkPad, 맥북처럼 찾고 싶은 키워드를 넣습니다.</p>
             </div>
             <div class="guide-card">
                 <div class="guide-step">2</div>
-                <h3>필수 사양 입력</h3>
-                <p>실사용 기준으로 RAM 16GB, SSD 512GB 이상을 먼저 추천합니다.</p>
+                <h3>원하는 사양 입력</h3>
+                <p>일반적인 사용이라면 RAM 16GB, SSD 512GB 이상부터 보는 편이 좋습니다.</p>
             </div>
             <div class="guide-card">
                 <div class="guide-step">3</div>
-                <h3>가격과 비교 데이터 확인</h3>
-                <p>현재가, 평균가, 최저가, 판매처 수를 함께 보고 판단합니다.</p>
+                <h3>가격과 비교 기준 확인</h3>
+                <p>현재가, 평균가, 최저가, 판매처 수를 함께 봅니다.</p>
             </div>
             <div class="guide-card">
                 <div class="guide-step">4</div>
-                <h3>상품 페이지 최종 확인</h3>
-                <p>구매 전 제품 상태, 보증, 배송비, 반품 조건을 반드시 확인합니다.</p>
+                <h3>상품 페이지 확인</h3>
+                <p>마지막으로 제품 상태, 보증, 배송비, 반품 조건을 확인합니다.</p>
             </div>
         </div>
     </section>
@@ -1255,13 +1255,13 @@ def render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_
     <section class="search-box">
         <div class="search-title-row">
             <div>
-                <h2>검색 조건 입력</h2>
-                <p>브랜드·모델명과 실사용 사양을 입력해 현재 구매 후보를 비교해 보세요.</p>
+                <h2>직접 조건 입력</h2>
+                <p>찾고 싶은 브랜드나 모델, 필요한 사양을 직접 넣어보세요.</p>
             </div>
         </div>
 
         <div class="example-searches">
-            <span>빠른 검색 예시</span>
+            <span>빠른 예시</span>
             {example_links}
         </div>
 
@@ -1330,17 +1330,17 @@ def make_product_strengths(product):
 
     comparison_count = max(mall_count, seller_count)
     if comparison_count >= 4:
-        strengths.append(f"동일·유사 모델 {comparison_count}개와 비교되어 가격 판단이 더 안정적입니다.")
+        strengths.append(f"비슷한 모델 {comparison_count}개와 비교되어 가격 판단이 더 안정적입니다.")
     elif comparison_count >= 2:
-        strengths.append(f"동일·유사 모델 {comparison_count}개 기준으로 비교가 가능합니다.")
+        strengths.append(f"비슷한 모델 {comparison_count}개 기준으로 비교가 가능합니다.")
 
     if value_score >= 280:
         strengths.append("가성비 점수가 높아 우선 검토할 만합니다.")
     elif value_score >= 240:
-        strengths.append("가성비 점수가 기준선에 가까워 구매 고려 대상으로 볼 수 있습니다.")
+        strengths.append("가성비 점수가 나쁘지 않아 비교 후보로 볼 수 있습니다.")
 
     if price_gap >= 100000:
-        strengths.append("판매처별 가격 차이가 커서 최저가 확인 가치가 있습니다.")
+        strengths.append("판매처마다 가격 차이가 커서 최저가 확인 가치가 있습니다.")
 
     if decision == "구매 추천":
         strengths.append("현재 기준에서는 구매 추천으로 분류된 후보입니다.")
@@ -1378,7 +1378,7 @@ def make_product_cautions(product):
         cautions.append("RAM 또는 SSD 정보가 부족해 상세 사양 확인이 필요합니다.")
 
     if price_gap >= 150000:
-        cautions.append("판매처별 가격 차이가 커서 제품 상태, 보증, 구성품 차이를 비교해야 합니다.")
+        cautions.append("판매처마다 가격 차이가 커서 제품 상태, 보증, 구성품 차이를 비교해야 합니다.")
 
     if any(word in title for word in ["액정", "파손", "부품", "고장", "베어본"]):
         cautions.append("제목상 상태 확인이 필요한 표현이 포함되어 있습니다.")
@@ -1424,7 +1424,7 @@ def render_purpose_context(result):
         return ""
 
     preset = PURPOSE_PRESETS[purpose]
-    label = esc(preset.get("label", "목적별 추천"))
+    label = esc(preset.get("label", "용도별"))
     desc = esc(preset.get("desc", ""))
 
     keyword = esc(result.get("keyword", "") or "전체")
@@ -1438,7 +1438,7 @@ def render_purpose_context(result):
     return f"""
     <div class="purpose-context-box">
         <div>
-            <span class="purpose-context-label">목적별 추천 기준</span>
+            <span class="purpose-context-label">이 조건으로 찾았습니다</span>
             <h3>{label}</h3>
             <p>{desc}</p>
         </div>
@@ -1456,11 +1456,11 @@ def render_purpose_context(result):
 def render_sticky_nav():
     return """
     <nav class="sticky-nav" aria-label="빠른 이동 메뉴">
-        <a href="#home">처음으로</a>
-        <a href="#purpose">목적별 추천</a>
+        <a href="#home">처음</a>
+        <a href="#purpose">용도별</a>
         <a href="#results">검색 결과</a>
         <a href="#top8">TOP 8</a>
-        <a href="#notice">이용 안내</a>
+        <a href="#notice">안내</a>
     </nav>
     """
 
@@ -1484,8 +1484,8 @@ def render_product_cards(products):
     if not products:
         return """
         <div class='empty'>
-            <b>조건에 맞는 상품이 없습니다.</b><br>
-            키워드를 조금 넓게 입력하거나, CPU/가격 조건을 비워서 다시 검색해 보세요.
+            <b>조건에 맞는 상품을 찾지 못했습니다.</b><br>
+            키워드를 넓게 잡거나 CPU, 가격 조건을 비워서 다시 찾아보세요.
         </div>
         """
 
@@ -1529,14 +1529,14 @@ def render_product_cards(products):
             <p class="summary-sentence">{summary_sentence}</p>
 
             <div class="confidence-box {confidence_class}">
-                <b>판단 신뢰도: {confidence_label}</b>
+                <b>비교 신뢰도: {confidence_label}</b>
                 <span>{esc(confidence_desc)}</span>
             </div>
 
             {render_product_pros_cons(product)}
 
             <div class="recommendation-points">
-                <h4>추천 판단 근거</h4>
+                <h4>왜 이렇게 봤나요?</h4>
                 <ul>{points_html}</ul>
             </div>
 
@@ -1550,13 +1550,13 @@ def render_product_cards(products):
                 <div><b>SSD</b><br>{ssd}</div>
                 <div><b>CPU</b><br>{cpu if cpu else "미확인"}</div>
                 <div><b>가성비 점수</b><br>{value_score}</div>
-                <div><b>동일 모델 후보</b><br>{seller_count}개</div>
+                <div><b>비슷한 모델</b><br>{seller_count}개</div>
                 <div><b>판매처 수</b><br>{mall_count}개</div>
                 <div><b>가격 차이</b><br>{price_gap:,}원</div>
             </div>
 
-            <p class="model-key"><b>모델키:</b> {model_key}</p>
-            <a class="link-button" href="{link}" target="_blank">상품 페이지 열기</a>
+            <p class="model-key"><b>비교 기준:</b> {model_key}</p>
+            <a class="link-button" href="{link}" target="_blank">상품 페이지 보기</a>
         </div>
         """
 
@@ -1592,14 +1592,14 @@ def render_page(result=None):
 
         result_html = f"""
         <section class="summary">
-            <h2>입력한 검색 조건</h2>
+            <h2>적용된 조건</h2>
             <div class="condition-grid">
                 <div><b>키워드</b><br>{keyword_value if keyword_value else "전체"}</div>
                 <div><b>RAM</b><br>{ram_value if ram_value else "전체"}</div>
                 <div><b>SSD</b><br>{ssd_value if ssd_value else "전체"}</div>
                 <div><b>CPU</b><br>{cpu_value if cpu_value else "전체"}</div>
                 <div><b>최대 가격</b><br>{max_price_display}</div>
-                <div><b>추천 모드</b><br>{purpose_display}</div>
+                <div><b>용도</b><br>{purpose_display}</div>
                 <div><b>정렬</b><br>{sort_display}</div>
             </div>
         </section>
@@ -3487,9 +3487,9 @@ def render_page(result=None):
             </a>
 
             <div class="desc-box">
-                <div class="desc-ko-title">리퍼/중고 노트북 구매 판단 검색기</div>
+                <div class="desc-ko-title">리퍼·중고 노트북 가격 비교 도구</div>
                 <div class="desc-ko-text">
-                    네이버 쇼핑 API 수집 데이터 기반으로 모델·사양·가격을 비교하고 구매 판단을 제공합니다.
+                    네이버 쇼핑 데이터를 바탕으로 가격과 사양을 함께 비교합니다.
                 </div>
             </div>
         </div>

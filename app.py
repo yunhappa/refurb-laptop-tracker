@@ -756,7 +756,7 @@ def render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_valu
                 현재 구매 타이밍이 괜찮은 후보를 먼저 보여줍니다.
             </p>
 
-            <div class="purpose-panel">
+            <div id="purpose" class="purpose-panel">
                 <div class="purpose-panel-title">
                     <b>목적별 추천 모드</b>
                     <span>사용 목적을 고르면 조건이 자동으로 적용됩니다.</span>
@@ -956,7 +956,7 @@ def render_price_history_section():
 
     if not rows:
         return """
-        <section class="price-history-box">
+        <section id="top8" class="price-history-box">
             <h2>가격 이력 분석</h2>
             <p>아직 가격 이력 분석 파일이 없습니다. py analyze_price_history.py를 먼저 실행하세요.</p>
         </section>
@@ -985,8 +985,6 @@ def render_price_history_section():
 
         return f"{title_key[:45]}|{cpu}|{ram}|{ssd}"
 
-    # price_history_summary.csv가 이미 구매 적기 점수 기준으로 정렬되어 있으므로
-    # 웹에서는 그 순서를 유지하되, 화면상 같은 상품만 한 번 더 제거한다.
     for row in rows:
         display_key = make_display_key(row)
 
@@ -1015,10 +1013,13 @@ def render_price_history_section():
         timing_signal = esc(row.get("timing_signal", ""))
         link = esc(row.get("link", ""))
 
+        extra_class = " extra-price-card" if index > 4 else ""
+
         cards += f"""
-        <div class="price-card">
+        <div class="price-card{extra_class}">
             <div class="price-rank">{index}위</div>
-            <div class="price-badge">🔥 {timing_signal}</div>\n            <div class="timing-score">구매 적기 점수 <b>{buy_timing_score}</b>점</div>
+            <div class="price-badge">🔥 {timing_signal}</div>
+            <div class="timing-score">구매 적기 점수 <b>{buy_timing_score}</b>점</div>
 
             <h3>{title}</h3>
 
@@ -1039,18 +1040,37 @@ def render_price_history_section():
         </div>
         """
 
-    return f"""
-    <section class="price-history-box">
-        <h2>구매 적기 점수 TOP 8</h2>
-        <p class="summary-intro">
-            평균 대비 할인율, 최근 최저가 여부, 관측 수, 판매처 수를 종합해 현재 구매 타이밍이 좋은 상품을 보여줍니다.
-        </p>
+    toggle_html = ""
+    if len(best_rows) > 4:
+        toggle_html = """
+        <label class="top8-toggle-label" for="top8-toggle">
+            <span class="show-more-text">TOP 8 전체 보기</span>
+            <span class="show-less-text">TOP 4만 보기</span>
+        </label>
+        """
 
-        <div class="price-card-list">
+    return f"""
+    <section id="top8" class="price-history-box">
+        <div class="section-title-row">
+            <div>
+                <h2>구매 적기 점수 TOP 8</h2>
+                <p class="summary-intro">
+                    처음에는 핵심 TOP 4만 보여주고, 필요하면 전체 TOP 8을 펼쳐 볼 수 있습니다.
+                </p>
+            </div>
+            <div class="section-mini-badge">가격 이력 기반</div>
+        </div>
+
+        <input type="checkbox" id="top8-toggle" class="top8-toggle-input">
+
+        <div class="price-card-list compact-top8">
             {cards}
         </div>
+
+        {toggle_html}
     </section>
     """
+
 
 def render_criteria_section():
     return """
@@ -1114,7 +1134,7 @@ def render_criteria_section():
 def render_roadmap_section():
     return """
     
-    <section class="notice-box">
+    <section id="notice" class="notice-box">
         <h2>서비스 이용 안내</h2>
         <p>
             리퍼 트래커는 네이버 쇼핑 API로 수집한 공개 상품 데이터를 바탕으로
@@ -1279,6 +1299,171 @@ def render_search_section(keyword_value, ram_value, ssd_value, cpu_value, price_
     """
 
 
+
+def make_product_strengths(product):
+    strengths = []
+
+    price = safe_int(product.get("price", 0))
+    value_score = safe_float(product.get("value_score", 0))
+    mall_count = safe_int(product.get("mall_count", 0))
+    seller_count = safe_int(product.get("seller_count", 0))
+    price_gap = safe_int(product.get("price_gap_in_group", 0))
+    ram = normalize_ram(product.get("ram", ""))
+    ssd = normalize_ssd(product.get("ssd", ""))
+    cpu = normalize_cpu(product.get("cpu", ""))
+    decision = product.get("buy_decision", "")
+
+    if price and price <= 500000:
+        strengths.append("50만원 이하 예산에서 검토 가능한 후보입니다.")
+    elif price and price <= 700000:
+        strengths.append("70만원 이하 예산에서 실사용 후보로 볼 수 있습니다.")
+
+    if ram in ["16GB", "24GB", "32GB", "64GB"] and ssd in ["512GB", "1TB", "2TB"]:
+        strengths.append(f"RAM {ram}, SSD {ssd}로 기본 실사용 사양을 충족합니다.")
+    elif ram:
+        strengths.append(f"RAM {ram} 정보가 확인됩니다.")
+
+    if cpu in ["i7", "i9", "Ryzen 7", "Apple M2", "Apple M3", "Apple M4"]:
+        strengths.append(f"CPU {cpu} 기준으로 성능 여유가 있는 편입니다.")
+    elif cpu in ["i5", "Ryzen 5", "Apple M1"]:
+        strengths.append(f"CPU {cpu} 기준으로 일반 작업에 무난한 편입니다.")
+
+    comparison_count = max(mall_count, seller_count)
+    if comparison_count >= 4:
+        strengths.append(f"동일·유사 모델 {comparison_count}개와 비교되어 가격 판단이 더 안정적입니다.")
+    elif comparison_count >= 2:
+        strengths.append(f"동일·유사 모델 {comparison_count}개 기준으로 비교가 가능합니다.")
+
+    if value_score >= 280:
+        strengths.append("가성비 점수가 높아 우선 검토할 만합니다.")
+    elif value_score >= 240:
+        strengths.append("가성비 점수가 기준선에 가까워 구매 고려 대상으로 볼 수 있습니다.")
+
+    if price_gap >= 100000:
+        strengths.append("판매처별 가격 차이가 커서 최저가 확인 가치가 있습니다.")
+
+    if decision == "구매 추천":
+        strengths.append("현재 기준에서는 구매 추천으로 분류된 후보입니다.")
+
+    # 중복 제거 + 최대 4개
+    unique = []
+    for item in strengths:
+        if item not in unique:
+            unique.append(item)
+
+    return unique[:4]
+
+
+def make_product_cautions(product):
+    cautions = []
+
+    mall_count = safe_int(product.get("mall_count", 0))
+    seller_count = safe_int(product.get("seller_count", 0))
+    price_gap = safe_int(product.get("price_gap_in_group", 0))
+    ram = product.get("ram", "")
+    ssd = product.get("ssd", "")
+    cpu = product.get("cpu", "")
+    decision = product.get("buy_decision", "")
+    title = product.get("title", "")
+
+    comparison_count = max(mall_count, seller_count)
+
+    if comparison_count <= 1:
+        cautions.append("비교 가능한 판매처가 적어 실제 상품 페이지 확인이 중요합니다.")
+
+    if not cpu:
+        cautions.append("CPU 정보가 명확하지 않아 상세 페이지에서 정확한 모델을 확인해야 합니다.")
+
+    if not ram or not ssd:
+        cautions.append("RAM 또는 SSD 정보가 부족해 상세 사양 확인이 필요합니다.")
+
+    if price_gap >= 150000:
+        cautions.append("판매처별 가격 차이가 커서 제품 상태, 보증, 구성품 차이를 비교해야 합니다.")
+
+    if any(word in title for word in ["액정", "파손", "부품", "고장", "베어본"]):
+        cautions.append("제목상 상태 확인이 필요한 표현이 포함되어 있습니다.")
+
+    if decision in ["보류", "데이터 부족"]:
+        cautions.append("현재 판단은 신중 검토 대상이므로 구매 전 조건 확인이 필요합니다.")
+
+    # 모든 리퍼/중고 공통 주의
+    cautions.append("리퍼·중고 상품은 배터리 상태, 외관 등급, 보증 기간, 반품 조건을 확인해야 합니다.")
+
+    unique = []
+    for item in cautions:
+        if item not in unique:
+            unique.append(item)
+
+    return unique[:4]
+
+
+def render_product_pros_cons(product):
+    strengths = make_product_strengths(product)
+    cautions = make_product_cautions(product)
+
+    strengths_html = "".join(f"<li>{esc(item)}</li>" for item in strengths) or "<li>추가 장점은 상품 상세 페이지에서 확인하세요.</li>"
+    cautions_html = "".join(f"<li>{esc(item)}</li>" for item in cautions) or "<li>구매 전 상세 페이지 확인이 필요합니다.</li>"
+
+    return f"""
+    <div class="pros-cons-grid">
+        <div class="pros-box">
+            <h4>장점</h4>
+            <ul>{strengths_html}</ul>
+        </div>
+        <div class="cautions-box">
+            <h4>주의</h4>
+            <ul>{cautions_html}</ul>
+        </div>
+    </div>
+    """
+
+
+def render_purpose_context(result):
+    purpose = result.get("purpose", "")
+    if not purpose or purpose not in PURPOSE_PRESETS:
+        return ""
+
+    preset = PURPOSE_PRESETS[purpose]
+    label = esc(preset.get("label", "목적별 추천"))
+    desc = esc(preset.get("desc", ""))
+
+    keyword = esc(result.get("keyword", "") or "전체")
+    ram = esc(result.get("ram", "") or "전체")
+    ssd = esc(result.get("ssd", "") or "전체")
+    cpu = esc(result.get("cpu", "") or "전체")
+
+    max_price = result.get("max_price")
+    max_price_text = "제한 없음" if max_price is None else f"{max_price:,}원"
+
+    return f"""
+    <div class="purpose-context-box">
+        <div>
+            <span class="purpose-context-label">목적별 추천 기준</span>
+            <h3>{label}</h3>
+            <p>{desc}</p>
+        </div>
+        <div class="purpose-context-grid">
+            <div><b>키워드</b><br>{keyword}</div>
+            <div><b>RAM</b><br>{ram}</div>
+            <div><b>SSD</b><br>{ssd}</div>
+            <div><b>CPU</b><br>{cpu}</div>
+            <div><b>예산</b><br>{max_price_text}</div>
+        </div>
+    </div>
+    """
+
+
+def render_sticky_nav():
+    return """
+    <nav class="sticky-nav" aria-label="빠른 이동 메뉴">
+        <a href="#home">처음으로</a>
+        <a href="#purpose">목적별 추천</a>
+        <a href="#results">검색 결과</a>
+        <a href="#top8">TOP 8</a>
+        <a href="#notice">이용 안내</a>
+    </nav>
+    """
+
 def render_main_dashboard(keyword_value, ram_value, ssd_value, cpu_value, price_value):
     return f"""
     <section class="dashboard-layout">
@@ -1347,6 +1532,8 @@ def render_product_cards(products):
                 <b>판단 신뢰도: {confidence_label}</b>
                 <span>{esc(confidence_desc)}</span>
             </div>
+
+            {render_product_pros_cons(product)}
 
             <div class="recommendation-points">
                 <h4>추천 판단 근거</h4>
@@ -1420,6 +1607,7 @@ def render_page(result=None):
         <section id="results" class="results">
             <h2>{search_type}</h2>
             <p class="count">상품 수: {len(products)}개</p>
+            {render_purpose_context(result)}
             {render_sort_controls(result)}
             {render_product_cards(products)}
         </section>
@@ -2222,6 +2410,35 @@ def render_page(result=None):
             .sort-links a {{
                 flex: 1 1 auto;
                 text-align: center;
+            }}
+
+            .sticky-nav {{
+                overflow-x: auto;
+                justify-content: flex-start;
+                -webkit-overflow-scrolling: touch;
+            }}
+
+            .sticky-nav a {{
+                flex: 0 0 auto;
+            }}
+
+            .section-title-row,
+            .purpose-context-box {{
+                grid-template-columns: 1fr;
+                flex-direction: column;
+            }}
+
+            .purpose-context-grid {{
+                grid-template-columns: 1fr 1fr;
+            }}
+
+            .pros-cons-grid {{
+                grid-template-columns: 1fr;
+            }}
+
+            .section-mini-badge {{
+                white-space: normal;
+                width: fit-content;
             }}
 
             .quick-filter-panel {{
@@ -3057,11 +3274,210 @@ def render_page(result=None):
             color: inherit;
         }}
 
+
+        .sticky-nav {{
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(248, 250, 252, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e5e7eb;
+        }}
+
+        .sticky-nav a {{
+            text-decoration: none;
+            color: #1d4ed8;
+            background: #ffffff;
+            border: 1px solid #dbeafe;
+            border-radius: 999px;
+            padding: 8px 13px;
+            font-size: 13px;
+            font-weight: 900;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }}
+
+        .sticky-nav a:hover {{
+            background: #eff6ff;
+        }}
+
+        .section-title-row {{
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }}
+
+        .section-mini-badge {{
+            white-space: nowrap;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 900;
+        }}
+
+        .top8-toggle-input {{
+            display: none;
+        }}
+
+        .compact-top8 .extra-price-card {{
+            display: none;
+        }}
+
+        .top8-toggle-input:checked + .compact-top8 .extra-price-card {{
+            display: block;
+        }}
+
+        .top8-toggle-label {{
+            display: block;
+            width: fit-content;
+            margin: 18px auto 0;
+            cursor: pointer;
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 999px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 900;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        }}
+
+        .top8-toggle-label .show-less-text {{
+            display: none;
+        }}
+
+        .top8-toggle-input:checked ~ .top8-toggle-label .show-more-text {{
+            display: none;
+        }}
+
+        .top8-toggle-input:checked ~ .top8-toggle-label .show-less-text {{
+            display: inline;
+        }}
+
+        .pros-cons-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }}
+
+        .pros-box,
+        .cautions-box {{
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+        }}
+
+        .pros-box {{
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }}
+
+        .cautions-box {{
+            background: #fff7ed;
+            border-color: #fed7aa;
+        }}
+
+        .pros-box h4,
+        .cautions-box h4 {{
+            margin: 0 0 8px;
+            font-size: 15px;
+        }}
+
+        .pros-box h4 {{
+            color: #166534;
+        }}
+
+        .cautions-box h4 {{
+            color: #9a3412;
+        }}
+
+        .pros-box ul,
+        .cautions-box ul {{
+            margin: 0;
+            padding-left: 18px;
+            color: #374151;
+            line-height: 1.6;
+            font-size: 14px;
+        }}
+
+        .purpose-context-box {{
+            display: grid;
+            grid-template-columns: minmax(240px, 0.9fr) minmax(360px, 1.1fr);
+            gap: 16px;
+            align-items: stretch;
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: 16px;
+            padding: 18px;
+            margin: 14px 0 18px;
+        }}
+
+        .purpose-context-label {{
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 7px 10px;
+            font-weight: 900;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }}
+
+        .purpose-context-box h3 {{
+            margin: 0 0 8px;
+            color: #1e3a8a;
+            font-size: 22px;
+        }}
+
+        .purpose-context-box p {{
+            margin: 0;
+            color: #475569;
+            line-height: 1.6;
+        }}
+
+        .purpose-context-grid {{
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }}
+
+        .purpose-context-grid div {{
+            background: #ffffff;
+            border: 1px solid #dbeafe;
+            border-radius: 12px;
+            padding: 12px;
+            color: #334155;
+            line-height: 1.45;
+            font-size: 13px;
+        }}
+
+        .purpose-context-grid b {{
+            color: #1d4ed8;
+        }}
+
+        html {{
+            scroll-behavior: smooth;
+        }}
+
+        #home,
+        #purpose,
+        #results,
+        #top8,
+        #notice {{
+            scroll-margin-top: 72px;
+        }}
+
     </style>
 </head>
 
 <body>
-    <header>
+    <header id="home">
         <div class="header-inner">
             <a class="brand-home-link" href="/" aria-label="리퍼 트래커 홈으로 이동">
                 <div class="logo-line">DATA-DRIVEN PRICE TRACKING</div>
@@ -3078,6 +3494,8 @@ def render_page(result=None):
             </div>
         </div>
     </header>
+
+    {render_sticky_nav()}
 
     <main>
         {render_service_landing_section(keyword_value, ram_value, ssd_value, cpu_value, price_value)}

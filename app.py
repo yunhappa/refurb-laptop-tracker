@@ -3958,6 +3958,12 @@ def about():
     return Response(render_about_page(), mimetype="text/html; charset=utf-8")
 
 
+
+@app.route("/google47e9a5428b88c145.html")
+def google_site_verification():
+    return Response("google-site-verification: google47e9a5428b88c145.html", mimetype="text/plain; charset=utf-8")
+
+
 @app.route("/robots.txt")
 def robots_txt():
     content = """User-agent: *

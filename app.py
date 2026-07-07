@@ -1658,6 +1658,7 @@ def render_page(result=None):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="리퍼·중고 노트북 가격과 사양을 비교하고, 평균가·최저가·판매처 수를 바탕으로 먼저 볼 만한 후보를 찾아보는 서비스입니다.">
+    <meta name="robots" content="index, follow">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
     <style>
         body {{
@@ -3621,6 +3622,7 @@ def render_static_page(title, subtitle, body_html, description):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{esc(title)} | 리퍼 트래커</title>
     <meta name="description" content="{esc(description)}">
+    <meta name="robots" content="index, follow">
     <style>
         * {{
             box-sizing: border-box;
@@ -3966,11 +3968,25 @@ def google_site_verification():
 
 @app.route("/robots.txt")
 def robots_txt():
-    content = """User-agent: *
-Allow: /
+    # Google Search Console의 URL 검사 도구까지 명시적으로 허용합니다.
+    # 빈 Disallow 값은 "차단 경로 없음"을 뜻합니다.
+    content = """User-agent: Googlebot
+Disallow:
+
+User-agent: Googlebot-Image
+Disallow:
+
+User-agent: Google-InspectionTool
+Disallow:
+
+User-agent: *
+Disallow:
+
 Sitemap: https://refurb-laptop-tracker.onrender.com/sitemap.xml
 """
-    return Response(content, mimetype="text/plain; charset=utf-8")
+    response = Response(content, mimetype="text/plain; charset=utf-8")
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @app.route("/sitemap.xml")

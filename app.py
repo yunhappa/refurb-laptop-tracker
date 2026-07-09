@@ -1658,6 +1658,7 @@ def render_page(result=None):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="리퍼·중고 노트북 가격과 사양을 비교하고, 평균가·최저가·판매처 수를 바탕으로 먼저 볼 만한 후보를 찾아보는 서비스입니다.">
+    <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
     <style>
@@ -3622,6 +3623,7 @@ def render_static_page(title, subtitle, body_html, description):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{esc(title)} | 리퍼 트래커</title>
     <meta name="description" content="{esc(description)}">
+    <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <style>
         * {{

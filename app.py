@@ -1658,6 +1658,15 @@ def render_page(result=None):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="리퍼·중고 노트북 가격과 사양을 비교하고, 평균가·최저가·판매처 수를 바탕으로 먼저 볼 만한 후보를 찾아보는 서비스입니다.">
+    <link rel="canonical" href="https://refurb-laptop-tracker.onrender.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="리퍼 트래커">
+    <meta property="og:title" content="리퍼 트래커 | 리퍼·중고 노트북 가격 비교">
+    <meta property="og:description" content="리퍼·중고 노트북의 가격, 평균가, 최저가, 판매처 수, 기본 사양을 함께 비교해 먼저 볼 만한 후보를 찾아봅니다.">
+    <meta property="og:url" content="https://refurb-laptop-tracker.onrender.com/">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="리퍼 트래커 | 리퍼·중고 노트북 가격 비교">
+    <meta name="twitter:description" content="리퍼·중고 노트북의 가격과 사양을 함께 비교해 먼저 볼 만한 후보를 찾아봅니다.">
     <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
@@ -3623,6 +3632,15 @@ def render_static_page(title, subtitle, body_html, description):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{esc(title)} | 리퍼 트래커</title>
     <meta name="description" content="{esc(description)}">
+    <link rel="canonical" href="https://refurb-laptop-tracker.onrender.com{request.path}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="리퍼 트래커">
+    <meta property="og:title" content="{esc(title)} | 리퍼 트래커">
+    <meta property="og:description" content="{esc(description)}">
+    <meta property="og:url" content="https://refurb-laptop-tracker.onrender.com{request.path}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{esc(title)} | 리퍼 트래커">
+    <meta name="twitter:description" content="{esc(description)}">
     <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <style>
@@ -3970,18 +3988,25 @@ def google_site_verification():
 
 @app.route("/robots.txt")
 def robots_txt():
-    # Google Search Console의 URL 검사 도구까지 명시적으로 허용합니다.
-    # 빈 Disallow 값은 "차단 경로 없음"을 뜻합니다.
-    content = """User-agent: Googlebot
+    # 주요 검색엔진 크롤러를 명시적으로 허용합니다.
+    content = """User-agent: Yeti
+Allow: /
+Disallow:
+
+User-agent: Googlebot
+Allow: /
 Disallow:
 
 User-agent: Googlebot-Image
+Allow: /
 Disallow:
 
 User-agent: Google-InspectionTool
+Allow: /
 Disallow:
 
 User-agent: *
+Allow: /
 Disallow:
 
 Sitemap: https://refurb-laptop-tracker.onrender.com/sitemap.xml
@@ -3997,19 +4022,29 @@ def sitemap_xml():
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://refurb-laptop-tracker.onrender.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
   </url>
   <url>
     <loc>https://refurb-laptop-tracker.onrender.com/guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://refurb-laptop-tracker.onrender.com/checklist</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://refurb-laptop-tracker.onrender.com/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
 """
-    return Response(content, mimetype="application/xml; charset=utf-8")
+    response = Response(content, mimetype="application/xml; charset=utf-8")
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @app.route("/")

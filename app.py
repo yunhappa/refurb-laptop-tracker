@@ -3,6 +3,7 @@ import html
 from collections import Counter
 from urllib.parse import urlencode
 import os
+from datetime import datetime, timezone
 from flask import Flask, request, Response
 
 INPUT_FILENAME = "buy_timing_result.csv"
@@ -1163,6 +1164,24 @@ def render_learning_links_section():
                 <h3>리퍼 트래커의 판단 방식</h3>
                 <p>평균가, 최저가, 관측 수, 판매처 수를 어떻게 참고하는지 설명합니다.</p>
             </a>
+
+            <a class="learning-card" href="/used-laptop-16gb-512gb">
+                <span>SPECS</span>
+                <h3>16GB·512GB 기준</h3>
+                <p>중고 노트북에서 RAM 16GB와 SSD 512GB가 왜 기준이 되는지 설명합니다.</p>
+            </a>
+
+            <a class="learning-card" href="/refurb-laptop-caution">
+                <span>CAUTION</span>
+                <h3>리퍼 노트북 주의점</h3>
+                <p>배터리, 외관, 보증, 반품 조건처럼 구매 전 꼭 볼 항목을 정리했습니다.</p>
+            </a>
+
+            <a class="learning-card" href="/laptop-price-guide">
+                <span>PRICE</span>
+                <h3>가격이 적당한지 보는 법</h3>
+                <p>평균가, 최저가, 판매처 수를 함께 보며 가격을 판단하는 방법입니다.</p>
+            </a>
         </div>
     </section>
     """
@@ -1667,6 +1686,28 @@ def render_page(result=None):
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="리퍼 트래커 | 리퍼·중고 노트북 가격 비교">
     <meta name="twitter:description" content="리퍼·중고 노트북의 가격과 사양을 함께 비교해 먼저 볼 만한 후보를 찾아봅니다.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="alternate" type="application/rss+xml" title="리퍼 트래커 RSS" href="https://refurb-laptop-tracker.onrender.com/rss.xml">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "리퍼 트래커",
+      "alternateName": "Refurb Laptop Tracker",
+      "url": "https://refurb-laptop-tracker.onrender.com/",
+      "description": "리퍼·중고 노트북의 가격, 평균가, 최저가, 판매처 수, 기본 사양을 함께 비교해 먼저 볼 만한 후보를 찾아보는 서비스입니다.",
+      "inLanguage": "ko-KR",
+      "publisher": {{
+        "@type": "Organization",
+        "name": "리퍼 트래커",
+        "url": "https://refurb-laptop-tracker.onrender.com/",
+        "sameAs": [
+          "https://github.com/yunhappa/refurb-laptop-tracker"
+        ]
+      }}
+    }}
+    </script>
     <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <title>리퍼 트래커 | Refurb Laptop Tracker</title>
@@ -3641,6 +3682,9 @@ def render_static_page(title, subtitle, body_html, description):
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="{esc(title)} | 리퍼 트래커">
     <meta name="twitter:description" content="{esc(description)}">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="alternate" type="application/rss+xml" title="리퍼 트래커 RSS" href="https://refurb-laptop-tracker.onrender.com/rss.xml">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="naver-site-verification" content="be4b5d474148a5366a8c0d1ae6dabd8e01b70bcb" />
     <meta name="robots" content="index, follow">
     <style>
@@ -3820,6 +3864,9 @@ def render_static_page(title, subtitle, body_html, description):
                 <a href="/guide">리퍼 노트북 고르는 법</a>
                 <a href="/checklist">구매 전 체크리스트</a>
                 <a href="/about">판단 방식 보기</a>
+                <a href="/used-laptop-16gb-512gb">16GB·512GB 기준</a>
+                <a href="/refurb-laptop-caution">리퍼 구매 주의점</a>
+                <a href="/laptop-price-guide">가격 판단법</a>
             </div>
         </article>
     </main>
@@ -3961,6 +4008,131 @@ def render_about_page():
         "리퍼 트래커가 리퍼·중고 노트북의 가격과 사양을 비교하고 구매 후보를 판단하는 방식을 설명합니다."
     )
 
+
+def render_used_laptop_specs_page():
+    body = """
+    <h2>16GB RAM과 512GB SSD가 기준이 되는 이유</h2>
+    <p>
+        중고·리퍼 노트북을 고를 때 가장 먼저 볼 만한 기준은 RAM과 SSD입니다.
+        문서 작업, 웹서핑, 온라인 강의, 간단한 사진 편집, 사무용 프로그램을 함께 쓰려면
+        RAM 16GB와 SSD 512GB 이상이 비교적 무난한 출발점입니다.
+    </p>
+
+    <h2>RAM 8GB는 피해야 할까요?</h2>
+    <p>
+        아주 가벼운 사용이라면 RAM 8GB도 쓸 수 있습니다. 하지만 브라우저 탭을 여러 개 열거나,
+        화상회의, 문서 작업, 백신 프로그램이 동시에 실행되면 금방 답답해질 수 있습니다.
+        오래 쓰려면 16GB 이상을 우선으로 보는 편이 안전합니다.
+    </p>
+
+    <h2>SSD 256GB와 512GB의 차이</h2>
+    <p>
+        SSD 256GB는 윈도우와 기본 프로그램만 설치해도 여유 공간이 빠르게 줄어듭니다.
+        사진, 강의 자료, 문서, 개발 도구를 함께 보관한다면 512GB 이상이 훨씬 편합니다.
+    </p>
+
+    <div class="tip-box">
+        <b>간단한 기준</b><br>
+        사무·학습용은 RAM 16GB / SSD 512GB, 개발·멀티태스킹용은 RAM 32GB / SSD 1TB 후보를 먼저 살펴보세요.
+    </div>
+
+    <h2>가격만 낮은 상품을 조심해야 하는 이유</h2>
+    <p>
+        같은 모델이라도 RAM, SSD, CPU, 보증 기간, 외관 등급, 배터리 상태에 따라 실제 가치는 달라집니다.
+        그래서 최저가만 보기보다 평균가, 판매처 수, 상품 상태를 함께 확인하는 것이 좋습니다.
+    </p>
+    """
+    return render_static_page(
+        "중고 노트북 16GB 512GB는 충분할까?",
+        "리퍼·중고 노트북을 고를 때 RAM 16GB, SSD 512GB 기준이 왜 자주 쓰이는지 정리했습니다.",
+        body,
+        "중고 노트북과 리퍼 노트북에서 RAM 16GB, SSD 512GB가 충분한지, 8GB와 256GB 모델을 어떻게 봐야 하는지 설명합니다."
+    )
+
+
+def render_refurb_caution_page():
+    body = """
+    <h2>리퍼 노트북은 가격보다 상태 확인이 중요합니다</h2>
+    <p>
+        리퍼·중고 노트북은 새 제품보다 저렴하게 살 수 있지만, 제품마다 상태 차이가 큽니다.
+        같은 모델이라도 배터리, 외관, 보증 기간, 구성품에 따라 실제 만족도가 달라질 수 있습니다.
+    </p>
+
+    <h2>상품 제목에서 먼저 볼 표현</h2>
+    <ul>
+        <li>리퍼, 중고, 전시, 반품, 벌크 등 상품 상태를 나타내는 단어를 확인합니다.</li>
+        <li>액정 파손, 부품용, 고장, 베어본 같은 표현이 있으면 신중히 봅니다.</li>
+        <li>윈도우 포함 여부와 충전기 포함 여부를 확인합니다.</li>
+    </ul>
+
+    <h2>상세 페이지에서 확인할 것</h2>
+    <ul>
+        <li>배터리 상태 또는 배터리 보증 여부</li>
+        <li>외관 등급과 실제 사진</li>
+        <li>키보드, 힌지, 액정, 포트 상태</li>
+        <li>보증 기간과 반품 가능 여부</li>
+        <li>배송비와 반품 배송비</li>
+    </ul>
+
+    <div class="tip-box">
+        <b>가격 차이가 큰 상품은 더 꼼꼼히 보세요.</b><br>
+        판매처마다 가격 차이가 큰 경우, 단순 할인일 수도 있지만 제품 상태나 구성품 차이일 수도 있습니다.
+    </div>
+
+    <h2>추천 점수는 후보를 좁히는 용도입니다</h2>
+    <p>
+        리퍼 트래커의 점수는 평균가, 최저가, 판매처 수, 기본 사양을 바탕으로 후보를 좁히는 참고 정보입니다.
+        최종 구매 전에는 반드시 판매 페이지에서 제품 상태를 직접 확인해야 합니다.
+    </p>
+    """
+    return render_static_page(
+        "리퍼 노트북 살 때 조심해야 할 점",
+        "리퍼·중고 노트북을 구매하기 전에 배터리, 외관, 보증, 반품 조건을 확인하는 방법을 정리했습니다.",
+        body,
+        "리퍼 노트북 구매 시 주의할 점, 배터리와 외관 상태, 보증 기간, 반품 조건, 상품 제목에서 조심해야 할 표현을 정리했습니다."
+    )
+
+
+def render_price_guide_page():
+    body = """
+    <h2>중고 노트북 가격은 평균가와 함께 봐야 합니다</h2>
+    <p>
+        중고·리퍼 노트북은 판매처마다 가격 차이가 크기 때문에 현재가만 보고 싸다고 판단하기 어렵습니다.
+        같은 모델의 평균가와 최근 최저가를 함께 보면 현재 가격이 어느 정도 위치인지 더 쉽게 알 수 있습니다.
+    </p>
+
+    <h2>가격이 괜찮아 보이는 기준</h2>
+    <ul>
+        <li>현재가가 평균가보다 낮은지 확인합니다.</li>
+        <li>최근 관측 최저가에 가까운지 확인합니다.</li>
+        <li>비슷한 모델의 판매처 수가 충분한지 확인합니다.</li>
+        <li>가격 차이가 크면 제품 상태나 보증 조건을 비교합니다.</li>
+    </ul>
+
+    <h2>판매처 수가 중요한 이유</h2>
+    <p>
+        판매처가 한 곳뿐이면 가격 비교가 어렵습니다. 반대로 여러 판매처에서 같은 모델을 팔고 있다면
+        평균가와 최저가를 계산하기 쉬워지고, 현재 가격이 괜찮은지 판단하기도 좋아집니다.
+    </p>
+
+    <div class="tip-box">
+        <b>너무 낮은 가격은 이유를 확인하세요.</b><br>
+        평균보다 지나치게 낮은 상품은 구성품 누락, 외관 하자, 배터리 문제, 보증 제외 조건이 있을 수 있습니다.
+    </div>
+
+    <h2>리퍼 트래커는 어떤 정보를 참고하나요?</h2>
+    <p>
+        리퍼 트래커는 현재가, 평균가, 최저가, 관측 수, 판매처 수, RAM, SSD, CPU 정보를 함께 참고합니다.
+        이를 통해 먼저 볼 만한 후보를 좁히고, 사용자가 상세 페이지에서 확인할 대상을 줄이는 데 도움을 주는 것이 목표입니다.
+    </p>
+    """
+    return render_static_page(
+        "중고 노트북 가격이 적당한지 확인하는 법",
+        "중고·리퍼 노트북의 현재가가 평균가와 최저가에 비해 적당한지 확인하는 기준을 정리했습니다.",
+        body,
+        "중고 노트북 가격 비교 방법, 평균가와 최저가 확인, 판매처 수와 가격 차이를 바탕으로 적정 가격을 판단하는 방법을 설명합니다."
+    )
+
 app = Flask(__name__)
 
 
@@ -3986,65 +4158,177 @@ def google_site_verification():
     return Response("google-site-verification: google47e9a5428b88c145.html", mimetype="text/plain; charset=utf-8")
 
 
+
+@app.route("/used-laptop-16gb-512gb")
+def used_laptop_specs():
+    return Response(render_used_laptop_specs_page(), mimetype="text/html; charset=utf-8")
+
+
+@app.route("/refurb-laptop-caution")
+def refurb_laptop_caution():
+    return Response(render_refurb_caution_page(), mimetype="text/html; charset=utf-8")
+
+
+@app.route("/laptop-price-guide")
+def laptop_price_guide():
+    return Response(render_price_guide_page(), mimetype="text/html; charset=utf-8")
+
+
 @app.route("/robots.txt")
+@app.route("/robots.txt/")
 def robots_txt():
-    # 주요 검색엔진 크롤러를 명시적으로 허용합니다.
+    # 네이버 검색로봇(Yeti)과 주요 검색엔진 로봇을 명시적으로 허용합니다.
     content = """User-agent: Yeti
 Allow: /
-Disallow:
 
 User-agent: Googlebot
 Allow: /
-Disallow:
 
 User-agent: Googlebot-Image
 Allow: /
-Disallow:
 
 User-agent: Google-InspectionTool
 Allow: /
-Disallow:
 
 User-agent: *
 Allow: /
-Disallow:
 
 Sitemap: https://refurb-laptop-tracker.onrender.com/sitemap.xml
 """
     response = Response(content, mimetype="text/plain; charset=utf-8")
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+
+
+@app.route("/favicon.svg")
+@app.route("/favicon.ico")
+def favicon():
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  <path d="M14 42h36v6H14z" fill="#dbeafe"/>
+  <path d="M18 16h28a4 4 0 0 1 4 4v20H14V20a4 4 0 0 1 4-4z" fill="#ffffff"/>
+  <path d="M23 24h18v4H23zm0 8h12v4H23z" fill="#2563eb"/>
+</svg>"""
+    response = Response(svg, mimetype="image/svg+xml; charset=utf-8")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+@app.route("/rss.xml")
+def rss_xml():
+    today = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    items = [
+        (
+            "리퍼 노트북 고르는 법",
+            "https://refurb-laptop-tracker.onrender.com/guide",
+            "리퍼·중고 노트북을 고를 때 가격, 사양, 판매처, 보증 조건을 어떤 순서로 보면 좋은지 정리했습니다."
+        ),
+        (
+            "중고·리퍼 노트북 구매 전 체크리스트",
+            "https://refurb-laptop-tracker.onrender.com/checklist",
+            "배터리, 외관, 윈도우 포함 여부, 배송비, 반품 가능 여부, 보증 기간 등 구매 전 확인할 항목을 정리했습니다."
+        ),
+        (
+            "리퍼 트래커의 판단 방식",
+            "https://refurb-laptop-tracker.onrender.com/about",
+            "리퍼 트래커가 평균가, 최저가, 판매처 수, 관측 수, 기본 사양을 어떻게 참고하는지 설명합니다."
+        ),
+        (
+            "중고 노트북 16GB 512GB는 충분할까?",
+            "https://refurb-laptop-tracker.onrender.com/used-laptop-16gb-512gb",
+            "중고 노트북과 리퍼 노트북에서 RAM 16GB, SSD 512GB가 왜 기준으로 쓰이는지 설명합니다."
+        ),
+        (
+            "리퍼 노트북 살 때 조심해야 할 점",
+            "https://refurb-laptop-tracker.onrender.com/refurb-laptop-caution",
+            "리퍼 노트북 구매 전에 배터리, 외관, 보증, 반품 조건을 확인하는 방법을 정리했습니다."
+        ),
+        (
+            "중고 노트북 가격이 적당한지 확인하는 법",
+            "https://refurb-laptop-tracker.onrender.com/laptop-price-guide",
+            "평균가, 최저가, 판매처 수, 가격 차이를 함께 보며 중고 노트북 가격을 판단하는 방법을 설명합니다."
+        ),
+    ]
+
+    item_xml = []
+    for title, link, description in items:
+        item_xml.append(f"""    <item>
+      <title>{esc(title)}</title>
+      <link>{link}</link>
+      <guid>{link}</guid>
+      <description>{esc(description)}</description>
+      <pubDate>{today}</pubDate>
+    </item>""")
+
+    content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>리퍼 트래커</title>
+    <link>https://refurb-laptop-tracker.onrender.com/</link>
+    <description>리퍼·중고 노트북 가격 비교와 구매 전 확인 가이드</description>
+    <language>ko-KR</language>
+    <lastBuildDate>{today}</lastBuildDate>
+{chr(10).join(item_xml)}
+  </channel>
+</rss>
+"""
+    response = Response(content, mimetype="application/rss+xml; charset=utf-8")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     return response
 
 
 @app.route("/sitemap.xml")
 def sitemap_xml():
+    today = datetime.now(timezone.utc).date().isoformat()
+    urls = [
+        ("https://refurb-laptop-tracker.onrender.com/", "daily", "1.0"),
+        ("https://refurb-laptop-tracker.onrender.com/guide", "monthly", "0.8"),
+        ("https://refurb-laptop-tracker.onrender.com/checklist", "monthly", "0.8"),
+        ("https://refurb-laptop-tracker.onrender.com/about", "monthly", "0.7"),
+        ("https://refurb-laptop-tracker.onrender.com/used-laptop-16gb-512gb", "monthly", "0.8"),
+        ("https://refurb-laptop-tracker.onrender.com/refurb-laptop-caution", "monthly", "0.8"),
+        ("https://refurb-laptop-tracker.onrender.com/laptop-price-guide", "monthly", "0.8"),
+    ]
+
+    items = []
+    for loc, changefreq, priority in urls:
+        items.append(f"""  <url>
+    <loc>{loc}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{changefreq}</changefreq>
+    <priority>{priority}</priority>
+  </url>""")
+
     content = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://refurb-laptop-tracker.onrender.com/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://refurb-laptop-tracker.onrender.com/guide</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://refurb-laptop-tracker.onrender.com/checklist</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://refurb-laptop-tracker.onrender.com/about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
+""" + "\\n".join(items) + """
 </urlset>
 """
     response = Response(content, mimetype="application/xml; charset=utf-8")
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     return response
+
+
+
+@app.errorhandler(404)
+def not_found(error):
+    html = render_static_page(
+        "페이지를 찾을 수 없습니다",
+        "입력한 주소가 바뀌었거나 존재하지 않는 페이지입니다.",
+        """
+        <h2>주소를 다시 확인해 주세요</h2>
+        <p>
+            찾으려는 페이지가 이동되었거나 삭제되었을 수 있습니다.
+            아래 버튼을 눌러 리퍼 트래커 첫 화면으로 돌아가세요.
+        </p>
+        """,
+        "리퍼 트래커에서 요청한 페이지를 찾을 수 없습니다."
+    )
+    return Response(html, status=404, mimetype="text/html; charset=utf-8")
 
 
 @app.route("/")

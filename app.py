@@ -4282,6 +4282,7 @@ def rss_xml():
 
 
 @app.route("/sitemap.xml")
+@app.route("/sitemap.xml/")
 def sitemap_xml():
     today = datetime.now(timezone.utc).date().isoformat()
     urls = [
@@ -4294,22 +4295,29 @@ def sitemap_xml():
         ("https://refurb-laptop-tracker.onrender.com/laptop-price-guide", "monthly", "0.8"),
     ]
 
-    items = []
+    item_lines = []
     for loc, changefreq, priority in urls:
-        items.append(f"""  <url>
-    <loc>{loc}</loc>
-    <lastmod>{today}</lastmod>
-    <changefreq>{changefreq}</changefreq>
-    <priority>{priority}</priority>
-  </url>""")
+        item_lines.extend([
+            "  <url>",
+            f"    <loc>{loc}</loc>",
+            f"    <lastmod>{today}</lastmod>",
+            f"    <changefreq>{changefreq}</changefreq>",
+            f"    <priority>{priority}</priority>",
+            "  </url>",
+        ])
 
-    content = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-""" + "\\n".join(items) + """
-</urlset>
-"""
+    content = "\n".join([
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        *item_lines,
+        '</urlset>',
+        '',
+    ])
+
     response = Response(content, mimetype="application/xml; charset=utf-8")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     return response
 
 
